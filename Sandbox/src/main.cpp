@@ -1,72 +1,119 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 
-#include <renderer/renderer_all.h>
+#include <renderer/Renderer.h>
 #include <scene/scene_all.h>
 #include <DemoScene.h>
-#include <scripts/Rotator.h>
+
+#include "gui/ImGuiLayer.h"
+#include "gui/EditorLayer.h"
+#include "gui/ViewportFramebuffer.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
 }
 
 int main() {
-	glfwInit();
+    if (!glfwInit()) {
+        std::cout << "Failed to initialize GLFW\n";
+        return -1;
+    }
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(1000, 800, "Dev Window", nullptr, nullptr);
-	if (!window) {
-		std::cout << "Failed to create window.\n";
-		glfwTerminate();
-		return -1;
-	}
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, (GLFWframebuffersizefun)framebuffer_size_callback);
+    GLFWwindow* window = glfwCreateWindow(1000, 800, "Dev Window", nullptr, nullptr);
+    if (!window) {
+        std::cout << "Failed to create window.\n";
+        glfwTerminate();
+        return -1;
+    }
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cout << "Failed to initialize GLAD\n";
-		return -1;
-	}
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "Failed to initialize GLAD\n";
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
 
     glViewport(0, 0, 1000, 800);
 
-	Scene scene;
-	Renderer renderer;
+    Scene scene;
+    Renderer renderer;
+    DemoScene::create(scene);
 
-	DemoScene::create(scene);
+    ImGuiLayer imguiLayer;
+    imguiLayer.Init(window);
 
-	float last = 0.0f;
-	float dt = 0.0f;
+    EditorLayer editorLayer;
+    editorLayer.SetScene(&scene);
 
-	float x = 0.0f, y = 0.0f, z = 0.0f;
+    ViewportFramebuffer viewportFramebuffer;
+    viewportFramebuffer.Init(1000, 800);
+
+    float last = 0.0f;
+
     while (!glfwWindowShouldClose(window)) {
-        float now = (float)glfwGetTime();
-		if (last == 0.0f) {
-			last = now;
-			continue;
-		}
+        float now = static_cast<float>(glfwGetTime());
+        if (last == 0.0f) {
+            last = now;
+        }
 
-		float dt = now - last;
-		
-		scene.onUpdate(dt);
-		renderer.render(scene);
+        float dt = now - last;
+        last = now;
 
-        glfwSwapBuffers(window);
         glfwPollEvents();
 
-		last = now;
+        scene.onUpdate(dt);
+
+        ImVec2 viewportSize = editorLayer.GetViewportSize();
+        unsigned int vpWidth = static_cast<unsigned int>(viewportSize.x);
+        unsigned int vpHeight = static_cast<unsigned int>(viewportSize.y);
+
+        if (vpWidth > 0 && vpHeight > 0) {
+            viewportFramebuffer.Resize(vpWidth, vpHeight);
+
+            if (scene.getActiveCamera()) {
+                scene.getActiveCamera()->aspect =
+                    static_cast<float>(vpWidth) / static_cast<float>(vpHeight);
+            }
+
+            viewportFramebuffer.Bind();
+            renderer.render(scene);
+            viewportFramebuffer.Unbind();
+
+            editorLayer.SetViewportTexture(viewportFramebuffer.GetColorAttachment());
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        int windowWidth = 0;
+        int windowHeight = 0;
+        glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+        glViewport(0, 0, windowWidth, windowHeight);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        imguiLayer.Begin();
+        editorLayer.OnUIRender();
+        imguiLayer.End();
+
+        glfwSwapBuffers(window);
     }
 
-	glfwDestroyWindow(window);
-	glfwTerminate();
-	return 0;
+    imguiLayer.Shutdown();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
 }
