@@ -47,6 +47,7 @@ target_link_libraries(Engine PUBLIC
 
 target_compile_definitions(Engine PUBLIC
     SHADER_PATH="${CMAKE_SOURCE_DIR}/assets/shaders/"
+    MODEL_PATH="${CMAKE_SOURCE_DIR}/assets/models/"
 )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
