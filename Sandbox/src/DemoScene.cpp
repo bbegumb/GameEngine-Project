@@ -14,6 +14,7 @@
 #include <renderer/Mesh.h>
 #include <renderer/ShaderProgram.h>
 #include <renderer/Material.h>
+#include <renderer/ObjLoader.h>
 
 #include <glm/glm.hpp>
 
@@ -27,14 +28,16 @@ namespace DemoScene
         auto materialRed = std::make_shared<Material>(shader, glm::vec3{ 1.0f, 0.0f, 0.2f });
         auto materialBlue = std::make_shared<Material>(shader, glm::vec3{ 0.0f, 0.0f, 1.0f });
         auto materialGray = std::make_shared<Material>(shader);
+        auto materialBunny = std::make_shared<Material>(shader, glm::vec3{0.9f, 0.85f, 0.75f});
 
         auto planeMesh = PrimitiveFactory::createPlane();
         auto cubeMesh = PrimitiveFactory::createCube();
+        auto bunnyMesh = ObjLoader::load("bunny.obj");
 
         Entity& cameraEntity = scene.createEntity("Main Camera");
-        CameraComponent& camera = cameraEntity.addComponent<CameraComponent>(45.0f, 1000.0f / 800.0f, 0.1f, 100.0f);
+        CameraComponent& camera = cameraEntity.addComponent<CameraComponent>(70.0f, 1000.0f / 800.0f, 0.1f, 100.0f);
 
-        cameraEntity.getTransform().setPosition(glm::vec3(0.0f, 2.0f, 9.0f));
+        cameraEntity.getTransform().setPosition(glm::vec3(0.0f, 2.0f, 6.0f));
         cameraEntity.getTransform().rotate(glm::vec3{ glm::radians(-15.0f), 0.0f, 0.0f });
 
         scene.setActiveCamera(&camera);
@@ -73,11 +76,21 @@ namespace DemoScene
 
         auto& rotator = cube1.addComponent<Rotator>();
 
-        Entity& cube2 = scene.createEntity("Cube B");
+        Entity& cube2 = scene.createEntity("Cube2");
         auto& cube2Mesh = cube2.addComponent<MeshComponent>(cubeMesh);
         auto& cube2Mat = cube2.addComponent<MaterialComponent>(materialBlue);
+        cube2.addComponent<Rotator>();
 
         cube2.getTransform().setPosition(glm::vec3(1.5f, 0.5f, 0.0f));
         cube2.getTransform().rotate(glm::vec3(0.0f, 0.0f, 0.0f));
+
+        Entity& bunny = scene.createEntity("Bunny");
+        auto& bunnyMeshC = bunny.addComponent<MeshComponent>(bunnyMesh);
+        auto& bunnyMat = bunny.addComponent<MaterialComponent>(materialBunny);
+        bunny.addComponent<Rotator>();
+        bunny.getTransform().setScale(glm::vec3{ 20.0f, 20.0f, 20.0f });
+
+        bunny.getTransform().setPosition(glm::vec3(0.0f, -1.0f, 2.0f));
+        bunny.getTransform().rotate(glm::vec3(0.0f, 0.0f, 0.0f));
     }
 }

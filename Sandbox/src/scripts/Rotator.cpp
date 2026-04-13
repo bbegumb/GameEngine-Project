@@ -5,7 +5,7 @@
 
 void Rotator::onUpdate(float dt) {
 	glm::vec3 rot = owner->getTransform().getRotation();
-	rot.z += dt;
+	rot.y += dt;
 
 	owner->getTransform().setRotation(rot);
 }
