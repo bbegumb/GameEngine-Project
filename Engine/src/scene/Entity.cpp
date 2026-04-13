@@ -2,8 +2,6 @@
 
 #include <scene/components/TransformComponent.h>
 
-#include <stdexcept>
-
 TransformComponent& Entity::getTransform() {
 	return *getComponent<TransformComponent>();
 }

@@ -23,7 +23,7 @@ namespace DemoScene
 {
     void create(Scene& scene)
     {
-        auto shader = std::make_shared<ShaderProgram>("basic_lit.vert", "basic_lit.frag");
+        auto shader = std::make_shared<ShaderProgram>("lit.vert", "lit.frag");
         auto materialRed = std::make_shared<Material>(shader, glm::vec3{ 1.0f, 0.0f, 0.2f });
         auto materialBlue = std::make_shared<Material>(shader, glm::vec3{ 0.0f, 0.0f, 1.0f });
         auto materialGray = std::make_shared<Material>(shader);
