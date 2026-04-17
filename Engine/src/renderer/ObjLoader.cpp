@@ -11,6 +11,7 @@
 
 #include <renderer/Vertex.h>
 #include <iostream>
+#include <fstream>
 #include <unordered_map>
 
 struct VertexKey {
@@ -29,24 +30,36 @@ struct VertexKeyHash {
     }
 };
 
-std::shared_ptr<Mesh> ObjLoader::load(const std::string& filepath) {
+std::shared_ptr<Mesh> ObjLoader::load(const std::string& objName, bool forceLoadNew) {
 
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    if (!forceLoadNew && loadCache(objName, vertices, indices)) {
+        return std::make_shared<Mesh>(vertices, indices);
+    }
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (std::string(MODEL_PATH) + filepath).c_str())) {
+    std::string filePath = std::string(MODEL_PATH) + objName;
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str())) {
         std::cerr << "OBJ load failed: " << err << std::endl;
         return nullptr;
     }
 
     if (!warn.empty()) std::cerr << "OBJ warning: " << warn << std::endl;
 
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
     std::unordered_map<VertexKey, unsigned int, VertexKeyHash> uniqueVertices;
+
+    size_t totalIndices = 0;
+    for (const auto& shape : shapes)
+        totalIndices += shape.mesh.indices.size();
+
+    vertices.reserve(totalIndices);
+    indices.reserve(totalIndices);
 
     for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
@@ -91,6 +104,9 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& filepath) {
         }
     }
 
+    indices.shrink_to_fit();
+    vertices.shrink_to_fit();
+
     glm::vec3 minBounds(FLT_MAX);
     glm::vec3 maxBounds(-FLT_MAX);
 
@@ -105,5 +121,51 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& filepath) {
         v.position -= center;
     }
 
+    saveCache(objName, vertices, indices);
     return std::make_shared<Mesh>(vertices, indices);
+}
+
+// Directly write obj data to a binary file once loaded
+// because it is faster to read compared to tinyobjloader
+void ObjLoader::saveCache(const std::string& objName,
+                          const std::vector<Vertex>& vertices,
+                          const std::vector<unsigned int>& indices) {
+
+    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".cache";
+
+    std::ofstream file(filePath, std::ios::binary);
+
+    size_t vertCount = vertices.size();
+    size_t idxCount = indices.size();
+
+    file.write(reinterpret_cast<const char*>(&vertCount), sizeof(size_t));
+    file.write(reinterpret_cast<const char*>(&idxCount), sizeof(size_t));
+    file.write(reinterpret_cast<const char*>(vertices.data()), vertCount * sizeof(Vertex));
+    file.write(reinterpret_cast<const char*>(indices.data()), idxCount * sizeof(unsigned int));
+}
+
+// Checks if cache exists, if so load vertices and indices and return true, if not return false
+bool ObjLoader::loadCache(const std::string& objName,
+                          std::vector<Vertex>& vertices,
+                          std::vector<unsigned int>& indices) {
+
+    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".cache";
+
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) return false;
+
+    vertices.clear();
+    indices.clear();
+
+    size_t vertCount, idxCount;
+    file.read(reinterpret_cast<char*>(&vertCount), sizeof(size_t));
+    file.read(reinterpret_cast<char*>(&idxCount), sizeof(size_t));
+
+    vertices.resize(vertCount);
+    indices.resize(idxCount);
+
+    file.read(reinterpret_cast<char*>(vertices.data()), vertCount * sizeof(Vertex));
+    file.read(reinterpret_cast<char*>(indices.data()), idxCount * sizeof(unsigned int));
+
+    return true;
 }
