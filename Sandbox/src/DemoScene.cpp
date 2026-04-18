@@ -22,7 +22,7 @@
 
 namespace DemoScene
 {
-    void create(Scene& scene)
+    void createScene1(Scene& scene)
     {
         auto shader = std::make_shared<ShaderProgram>("lit.vert", "lit.frag");
         auto materialRed = std::make_shared<Material>(shader, glm::vec3{ 1.0f, 0.0f, 0.2f });
@@ -44,7 +44,7 @@ namespace DemoScene
 
         Entity& sun = scene.createEntity("Sun");
         auto& dirLight = sun.addComponent<DirectionalLightComponent>();
-        dirLight.direction = glm::vec3(-1.0f, -1.0f, -0.3f);
+        sun.getTransform().setRotation(glm::vec3(glm::radians(-45.0f), glm::radians(-30.0f), 0.0f));
         dirLight.color = glm::vec3(1.0f, 0.95f, 0.75f);
         dirLight.ambientStrength = 0.2f;
         dirLight.diffuseStrength = 0.8f;
@@ -88,9 +88,46 @@ namespace DemoScene
         auto& bunnyMeshC = bunny.addComponent<MeshComponent>(bunnyMesh);
         auto& bunnyMat = bunny.addComponent<MaterialComponent>(materialBunny);
         bunny.addComponent<Rotator>();
-        bunny.getTransform().setScale(glm::vec3{ 20.0f, 20.0f, 20.0f });
+        bunny.getTransform().setScale(glm::vec3{ 15.0f, 15.0f, 15.0f });
 
-        bunny.getTransform().setPosition(glm::vec3(0.0f, -1.0f, 2.0f));
+        bunny.getTransform().setPosition(glm::vec3(0.0f, 1.15f, 2.0f));
         bunny.getTransform().rotate(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+
+    void createScene2(Scene& scene) {
+        auto shader = std::make_shared<ShaderProgram>("lit.vert", "lit.frag");
+
+        auto materialCar = std::make_shared<Material>(shader, glm::vec3{ 0.2f, 0.05f, 0.5f });
+        auto materialGround = std::make_shared<Material>(shader, glm::vec3{ 0.3f, 0.3f, 0.3f });
+
+        auto carMesh = ObjLoader::load("bmw.obj");
+        auto planeMesh = PrimitiveFactory::createPlane();
+
+        Entity& cameraEntity = scene.createEntity("Main Camera");
+        CameraComponent& camera = cameraEntity.addComponent<CameraComponent>(
+            70.0f, 1000.0f / 800.0f, 0.1f, 100.0f);
+        cameraEntity.getTransform().setPosition(glm::vec3(0.0f, 3.0f, 8.0f));
+        cameraEntity.getTransform().rotate(glm::vec3{ glm::radians(-15.0f), 0.0f, 0.0f });
+        scene.setActiveCamera(&camera);
+
+        Entity& sun = scene.createEntity("Sun");
+        auto& dirLight = sun.addComponent<DirectionalLightComponent>();
+        sun.getTransform().setRotation(glm::vec3(glm::radians(-45.0f), glm::radians(-30.0f), 0.0f));
+        dirLight.color = glm::vec3(1.0f, 0.95f, 0.75f);
+        dirLight.ambientStrength = 0.25f;
+        dirLight.diffuseStrength = 0.9f;
+        dirLight.specularStrength = 0.6f;
+
+        Entity& ground = scene.createEntity("Ground");
+        ground.addComponent<MeshComponent>(planeMesh);
+        ground.addComponent<MaterialComponent>(materialGround);
+        ground.getTransform().setScale(glm::vec3(15.0f, 1.0f, 15.0f));
+
+        Entity& car = scene.createEntity("BMW");
+        car.addComponent<MeshComponent>(carMesh);
+        car.addComponent<MaterialComponent>(materialCar);
+        car.getTransform().setPosition(glm::vec3(0.0f, 1.4f, 1.0f));
+        car.getTransform().setScale(glm::vec3(0.015f, 0.015f, 0.015f));
+        car.addComponent<Rotator>();
     }
 }

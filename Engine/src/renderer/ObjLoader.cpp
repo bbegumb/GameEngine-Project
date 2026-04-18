@@ -12,6 +12,7 @@
 #include <renderer/Vertex.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <unordered_map>
 
 struct VertexKey {
@@ -131,6 +132,7 @@ void ObjLoader::saveCache(const std::string& objName,
                           const std::vector<Vertex>& vertices,
                           const std::vector<unsigned int>& indices) {
 
+    std::filesystem::create_directories("C:/Users/bedir/git/GameEngine-Project/assets/models/OBJCache/");
     std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".cache";
 
     std::ofstream file(filePath, std::ios::binary);

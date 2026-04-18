@@ -51,7 +51,7 @@ int main() {
 
     Scene scene;
     Renderer renderer;
-    DemoScene::create(scene);
+    DemoScene::createScene2(scene);
 
     ImGuiLayer imguiLayer;
     imguiLayer.Init(window);
