@@ -5,7 +5,7 @@
 class Scene;
 class ShaderProgram;
 
-namespace DemoScene
-{
-    void create(Scene& scene);
+namespace DemoScene {
+    void createScene1(Scene& scene);
+    void createScene2(Scene& scene);
 }

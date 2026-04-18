@@ -153,7 +153,7 @@ void Renderer::drawEntity(const Entity& entity,
 
 	if (dirLight) {
 		shader.setBool("uHasDirectionalLight", true);
-		shader.setVec3("uDirectionalLight.direction", dirLight->direction);
+		shader.setVec3("uDirectionalLight.direction", dirLight->getDirection());
 		shader.setVec3("uDirectionalLight.color", dirLight->color);
 		shader.setFloat("uDirectionalLight.ambientIntensity", dirLight->ambientStrength);
 		shader.setFloat("uDirectionalLight.diffuseIntensity", dirLight->diffuseStrength);

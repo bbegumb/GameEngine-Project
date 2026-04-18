@@ -6,7 +6,6 @@
 
 class DirectionalLightComponent : public Component {
 public:
-	glm::vec3 direction = glm::vec3{ -0.2f, -1.0f, -0.3f };
 	glm::vec3 color = glm::vec3{ 1.0f, 1.0f, 1.0f };
 
 	float ambientStrength = 0.2f;
@@ -23,7 +22,7 @@ public:
         glm::vec3 camForward = camera->getEntity()->getTransform().forward();
         glm::vec3 center = camPos + camForward * shadowDistance * 0.5f;
 
-        glm::vec3 lightDir = glm::normalize(direction);
+        glm::vec3 lightDir = glm::normalize(getDirection());
         glm::vec3 lightPos = center - lightDir * shadowFar * 0.5f;
 
         glm::mat4 view = glm::lookAt(lightPos, center, glm::vec3(0, 1, 0));
@@ -33,5 +32,9 @@ public:
             shadowNear, shadowFar
         );
         return proj * view;
+    }
+
+    glm::vec3 getDirection() const {
+        return owner->getTransform().forward();
     }
 };
