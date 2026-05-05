@@ -10,6 +10,7 @@ class CameraComponent;
 class Scene {
 public:
     Entity& createEntity(const std::string& name);
+    void removeEntity(Entity* entity);
 
     CameraComponent* getActiveCamera() const { return activeCamera; }
     void setActiveCamera(CameraComponent* camera) { activeCamera = camera; }
