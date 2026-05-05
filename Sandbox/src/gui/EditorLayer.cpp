@@ -2,35 +2,35 @@
 
 #include "imgui.h"
 
-#include <scene/Scene.h>
-#include <scene/Entity.h>
-#include <scene/components/TransformComponent.h>
+#include <controller/SceneController.h>
+#include <controller/EntityController.h>
+#include <controller/TransformController.h>
 
 void EditorLayer::SetScene(Scene* scene) {
-    m_Scene = scene;
+    SceneController::setScene(scene);
 }
 
 void EditorLayer::SetViewportTexture(unsigned int textureID) {
-    m_ViewportTexture = textureID;
+     viewportTexture = textureID;
 }
 
 void EditorLayer::OnUIRender() {
     ShowDockspace();
     ShowMenuBar();
 
-    if (m_ShowStats)
+    if (showStats)
         ShowStatsPanel();
 
-    if (m_ShowHierarchy)
+    if (showHierarchy)
         ShowHierarchyPanel();
 
-    if (m_ShowInspector)
+    if (showInspector)
         ShowInspectorPanel();
 
-    if (m_ShowConsole)
+    if (showConsole)
         ShowConsolePanel();
 
-    if (m_ShowViewport)
+    if (showViewport)
         ShowViewportPanel();
 }
 
@@ -73,11 +73,11 @@ void EditorLayer::ShowMenuBar() {
         }
 
         if (ImGui::BeginMenu("Window")) {
-            ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
-            ImGui::MenuItem("Hierarchy", nullptr, &m_ShowHierarchy);
-            ImGui::MenuItem("Inspector", nullptr, &m_ShowInspector);
-            ImGui::MenuItem("Console", nullptr, &m_ShowConsole);
-            ImGui::MenuItem("Viewport", nullptr, &m_ShowViewport);
+            ImGui::MenuItem("Stats", nullptr, &showStats);
+            ImGui::MenuItem("Hierarchy", nullptr, &showHierarchy);
+            ImGui::MenuItem("Inspector", nullptr, &showInspector);
+            ImGui::MenuItem("Console", nullptr, &showConsole);
+            ImGui::MenuItem("Viewport", nullptr, &showViewport);
             ImGui::EndMenu();
         }
 
@@ -86,7 +86,7 @@ void EditorLayer::ShowMenuBar() {
 }
 
 void EditorLayer::ShowStatsPanel() {
-    ImGui::Begin("Stats", &m_ShowStats);
+    ImGui::Begin("Stats", &showStats);
 
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("FPS: %.1f", io.Framerate);
@@ -104,70 +104,145 @@ void EditorLayer::ShowStatsPanel() {
 }
 
 void EditorLayer::ShowHierarchyPanel() {
-    ImGui::Begin("Hierarchy", &m_ShowHierarchy);
+    ImGui::Begin("Hierarchy", &showHierarchy);
 
-    if (!m_Scene) {
-        ImGui::Text("No scene loaded.");
-        ImGui::End();
-        return;
+    if (ImGui::Button("Add Entity")) {
+            SceneController::createEntity("New Entity");
     }
+    
+    ImGui::Separator();
+    
+    for (Entity* entity : SceneController::getEntityPointers()) {
+           if (!entity) continue;
 
-    for (const auto& entityPtr : m_Scene->getEntities()) {
-        Entity* entity = entityPtr.get();
-        bool selected = (m_SelectedEntity == entity);
+           bool selected = (EntityController::getSelectedEntity() == entity);
 
-        if (ImGui::Selectable(entity->getName().c_str(), selected)) {
-            m_SelectedEntity = entity;
-        }
+           if (ImGui::Selectable(EntityController::getName(entity).c_str(), selected)) {
+               EntityController::setSelectedEntity(entity);
+       }
     }
 
     ImGui::End();
 }
 
 void EditorLayer::ShowInspectorPanel() {
-    ImGui::Begin("Inspector", &m_ShowInspector);
+    ImGui::Begin("Inspector", &showInspector);
 
-    if (!m_SelectedEntity) {
-        ImGui::Text("No entity selected.");
-        ImGui::End();
-        return;
+    Entity* entity = EntityController::getSelectedEntity();
+    
+    if (!entity) {
+            ImGui::Text("No entity selected.");
+            ImGui::End();
+            return;
     }
 
-    ImGui::Text("Selected Entity: %s", m_SelectedEntity->getName().c_str());
+    ImGui::Text("Selected Entity: %s", entity->getName().c_str());
     ImGui::Separator();
 
-    auto& transform = m_SelectedEntity->getTransform();
+    if(ImGui::Button("Add Component")){
+        ImGui::OpenPopup("AddComponentPopup");
+    }
+    
+    if (ImGui::BeginPopup("AddComponentPopup")) {
+        if (ImGui::MenuItem("Camera")) {
+            EntityController::addCamera(entity);
+        }
+        
+        if (ImGui::MenuItem("Mesh")) {
+            EntityController::addMesh(entity);
+        }
 
-    glm::vec3 position = transform.getPosition();
-    glm::vec3 rotation = transform.getRotation();
-    glm::vec3 scale = transform.getScale();
+        if (ImGui::MenuItem("Material")) {
+            EntityController::addMaterial(entity);
+        }
 
-    float pos[3] = { position.x, position.y, position.z };
-    float rot[3] = { rotation.x, rotation.y, rotation.z };
-    float scl[3] = { scale.x, scale.y, scale.z };
+        if (ImGui::MenuItem("Point Light")) {
+            EntityController::addPointLight(entity);
+        }
 
-    if (ImGui::DragFloat3("Position", pos, 0.1f)) {
-        transform.setPosition({ pos[0], pos[1], pos[2] });
+        if (ImGui::MenuItem("Directional Light")) {
+            EntityController::addDirectionalLight(entity);
+        }
+        ImGui::EndPopup();
+
+    }
+    
+    ImGui::Separator();
+    
+    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+        glm::vec3 position = TransformController::getPosition(entity);
+        glm::vec3 rotation = TransformController::getRotation(entity);
+        glm::vec3 scale = TransformController::getScale(entity);
+
+        if (ImGui::DragFloat3("Position", &position.x, 0.1f)) {
+            TransformController::setPosition(entity, position);
+        }
+
+        if (ImGui::DragFloat3("Rotation", &rotation.x, 0.1f)) {
+            TransformController::setRotation(entity, rotation);
+        }
+
+        if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 100.0f)) {
+            TransformController::setScale(entity, scale);
+        }
+    }
+    
+    if (CameraComponent* camera = EntityController::getCamera(entity)) {
+        if (ImGui::CollapsingHeader("Camera")) {
+            ImGui::DragFloat("FOV", &camera->fov, 0.1f);
+            ImGui::DragFloat("Aspect", &camera->aspect, 0.1f);
+            ImGui::DragFloat("Near Plane", &camera->nearPlane, 0.01f);
+            ImGui::DragFloat("Far Plane", &camera->farPlane, 1.0f);
+        }
+    }
+    
+    if (MeshComponent* mesh = EntityController::getMesh(entity)) {
+        if (ImGui::CollapsingHeader("Mesh")) {
+            ImGui::Text("Mesh Component exists");
+            ImGui::Text("Mesh assigned: %s", mesh->mesh ? "Yes" : "No");
+        }
     }
 
-    if (ImGui::DragFloat3("Rotation", rot, 0.1f)) {
-        transform.setRotation({ rot[0], rot[1], rot[2] });
+    if (MaterialComponent* material = EntityController::getMaterial(entity)) {
+        if (ImGui::CollapsingHeader("Material")) {
+            ImGui::Text("Material Component exists");
+            ImGui::Text("Material assigned: %s", material->material ? "Yes" : "No");
+        }
+    }
+    
+    if (PointLightComponent* light = EntityController::getPointLight(entity)) {
+        if (ImGui::CollapsingHeader("Point Light")) {
+            ImGui::DragFloat3("Color", &light->color.x, 0.1f);
+            ImGui::DragFloat("P_Ambient", &light->ambientStrength, 0.01f);
+            ImGui::DragFloat("P_Diffuse", &light->diffuseStrength, 0.01f);
+            ImGui::DragFloat("P_Specular", &light->specularStrength, 0.01f);
+            ImGui::DragFloat("Constant", &light->constant, 0.01f);
+            ImGui::DragFloat("Linear", &light->linear, 0.01f);
+            ImGui::DragFloat("Quadratic", &light->quadratic, 0.01f);
+        }
     }
 
-    if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
-        transform.setScale({ scl[0], scl[1], scl[2] });
+    if (DirectionalLightComponent* light = EntityController::getDirectionalLight(entity)) {
+        if (ImGui::CollapsingHeader("Directional Light")) {
+            ImGui::DragFloat3("Direction", &light->direction.x, 0.1f);
+            ImGui::DragFloat3("Color", &light->color.x, 0.1f);
+            ImGui::DragFloat("Ambient", &light->ambientStrength, 0.01f);
+            ImGui::DragFloat("Diffuse", &light->diffuseStrength, 0.01f);
+            ImGui::DragFloat("Specular", &light->specularStrength, 0.01f);
+        }
     }
 
     ImGui::End();
+
 }
 
 void EditorLayer::ShowConsolePanel() {
-    ImGui::Begin("Console", &m_ShowConsole);
+    ImGui::Begin("Console", &showConsole);
 
     ImGui::TextWrapped("[Info] Engine initialized successfully.");
     ImGui::TextWrapped("[Info] ImGui editor loaded.");
 
-    if (m_Scene)
+    if (SceneController::getScene())
         ImGui::TextWrapped("[Debug] Scene connected.");
     else
         ImGui::TextWrapped("[Debug] No scene connected.");
@@ -176,14 +251,14 @@ void EditorLayer::ShowConsolePanel() {
 }
 
 void EditorLayer::ShowViewportPanel() {
-    ImGui::Begin("Viewport", &m_ShowViewport);
+    ImGui::Begin("Viewport", &showViewport);
 
-    m_ViewportSize = ImGui::GetContentRegionAvail();
+     viewportSize = ImGui::GetContentRegionAvail();
 
-    if (m_ViewportTexture != 0 && m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f) {
+    if (viewportTexture != 0 &&  viewportSize.x > 0.0f &&  viewportSize.y > 0.0f) {
         ImGui::Image(
-            (ImTextureID)(intptr_t)m_ViewportTexture,
-            m_ViewportSize,
+            (ImTextureID)(intptr_t) viewportTexture,
+             viewportSize,
             ImVec2(0, 1),
             ImVec2(1, 0)
         );
