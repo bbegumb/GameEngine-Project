@@ -13,6 +13,21 @@ Entity& Scene::createEntity(const std::string& name) {
 	return ref;
 }
 
+
+void Scene::removeEntity(Entity* entity) {
+    if (!entity) return;
+
+    auto& entities_s = entities;
+
+    entities_s.erase(
+        std::remove_if(entities_s.begin(), entities_s.end(),
+            [entity](const std::unique_ptr<Entity>& e) {
+                return e.get() == entity;
+            }),
+        entities_s.end()
+    );
+}
+
 void Scene::onCameraAdded(CameraComponent* camera)
 {
 	if (activeCamera == nullptr)
