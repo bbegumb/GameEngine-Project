@@ -1,8 +1,10 @@
 #include "ObjLoader.h"
 
+/* 
 #include <codeanalysis/warnings.h>
 #pragma warning(push)
 #pragma warning(disable: ALL_CODE_ANALYSIS_WARNINGS)
+ */
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyobjloader/tiny_object_loader.h>
