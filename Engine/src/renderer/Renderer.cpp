@@ -193,5 +193,5 @@ void Renderer::drawEntityDepth(const Entity& entity,
 	glm::mat4 model = entity.getTransform().getMatrix();
 	depthShader->setMat4("uLightSpaceMatrix", lightSpaceMatrix);
 	depthShader->setMat4("uModel", model);
-	meshComponent->mesh->draw();
+    meshComponent->mesh->draw();
 }
