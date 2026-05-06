@@ -22,3 +22,12 @@ glm::mat4 CameraComponent::getViewMatrix() const {
 glm::mat4 CameraComponent::getProjectionMatrix() const {
 	return glm::perspective(glm::radians(fov), aspect, nearPlane, farPlane);
 }
+
+void CameraComponent::onAttach() {
+    owner->getScene().onCameraAdded(this);
+}
+
+void CameraComponent::onDetach() {
+    if (owner->getScene().getActiveCamera() == this)
+        owner->getScene().setActiveCamera(nullptr);
+}

@@ -9,6 +9,7 @@
 #include <scene/components/MaterialComponent.h>
 #include <scene/components/DirectionalLightComponent.h>
 #include <scene/components/PointLightComponent.h>
+#include <scene/components/RigidBodyComponent.h>
 
 #include <renderer/PrimitiveFactory.h>
 #include <renderer/Mesh.h>
@@ -66,23 +67,25 @@ namespace DemoScene
         auto& groundMesh = ground.addComponent<MeshComponent>(planeMesh);
         auto& groundMat = ground.addComponent<MaterialComponent>(materialGray);
 
-        ground.getTransform().setScale(glm::vec3(8.0f, 1.0f, 8.0f));
+        ground.getTransform().setScale(glm::vec3(8.0f, 0.01f, 8.0f));
+
+        ground.addComponent<RigidBodyComponent>(Kinematic);
 
         Entity& cube1 = scene.createEntity("Cube A");
         auto& cube1Mesh = cube1.addComponent<MeshComponent>(cubeMesh);
         auto& cube1Mat = cube1.addComponent<MaterialComponent>(materialRed);
 
-        cube1.getTransform().setPosition(glm::vec3(-1.5f, 0.5f, 0.0f));
+        cube1.getTransform().setPosition(glm::vec3(-1.5f, 5.0f, 0.0f));
 
-        auto& rotator = cube1.addComponent<Rotator>();
+        cube1.addComponent<RigidBodyComponent>(Dynamic);
 
         Entity& cube2 = scene.createEntity("Cube2");
         auto& cube2Mesh = cube2.addComponent<MeshComponent>(cubeMesh);
         auto& cube2Mat = cube2.addComponent<MaterialComponent>(materialBlue);
-        cube2.addComponent<Rotator>();
 
         cube2.getTransform().setPosition(glm::vec3(1.5f, 0.5f, 0.0f));
-        cube2.getTransform().rotate(glm::vec3(0.0f, 0.0f, 0.0f));
+
+        cube2.addComponent<RigidBodyComponent>(Dynamic);
 
         Entity& bunny = scene.createEntity("Bunny");
         auto& bunnyMeshC = bunny.addComponent<MeshComponent>(bunnyMesh);
