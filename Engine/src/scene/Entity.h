@@ -43,11 +43,20 @@ public:
         T* rawPtr = component.get();
         components.push_back(std::move(component));
 
-        if constexpr (std::is_same_v<T, CameraComponent>) {
-            scene->onCameraAdded(rawPtr);
-        }
+        rawPtr->onAttach();
 
         return *rawPtr;
+    }
+
+    template<typename T>
+    void removeComponent() {
+        for (auto it = components.begin(); it != components.end(); it++) {
+            if (dynamic_cast<T*>(it->get())) {
+                (*it)->onDetach();
+                components.erase(it);
+                return;
+            }
+        }
     }
 
     template<typename T>

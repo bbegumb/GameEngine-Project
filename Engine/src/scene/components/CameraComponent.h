@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 
 #include <scene/components/Component.h>
+ 
 
 class CameraComponent : public Component {
 public:
@@ -15,4 +16,7 @@ public:
 
 	glm::mat4 getViewMatrix() const;
 	glm::mat4 getProjectionMatrix() const;
+
+	void onAttach();
+	void onDetach();
 };
