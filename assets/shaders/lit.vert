@@ -19,10 +19,12 @@ void main() {
 	vFragPos = worldPos.xyz;
 
 	mat3 normalMatrix = mat3(transpose(inverse(uModel)));
-	vNormal = normalMatrix * aNormal;
+	vNormal = normalize(normalMatrix * aNormal);
 
 	vTexCoord = aTexCoord;
 
-	vFragPosLightSpace = uLightSpaceMatrix * worldPos;
+	float normalOffsetScale = 0.02;
+	vec3 offsetPos = worldPos.xyz + vNormal * normalOffsetScale;
+	vFragPosLightSpace = uLightSpaceMatrix * vec4(offsetPos, 1.0);
 	gl_Position = uProj * uView * worldPos;
 }
