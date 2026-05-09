@@ -60,7 +60,13 @@ void EntityController::addCamera(Entity* entity){
 void EntityController::addMesh(Entity* entity){
     if(!entity) return;
     if(!entity->hasComponent<MeshComponent>()){
-        entity->addComponent<MeshComponent>();
+        entity->addComponent<MeshComponent>(PrimitiveFactory::createCube());
+    }
+
+    if(!entity->hasComponent<MaterialComponent>()){
+        auto shader = std::make_shared<ShaderProgram>("lit.vert", "lit.frag");
+        auto material = std::make_shared<Material>(shader, glm::vec3(0.7f, 0.7f, 0.7f));
+        entity->addComponent<MaterialComponent>(material);
     }
 }
 
