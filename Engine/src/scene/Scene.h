@@ -23,10 +23,11 @@ public:
 
     const std::vector<std::unique_ptr<Entity>>& getEntities() const { return entities; }
 
-    PhysicsWorld getPhysicsWorld() const { return physicsWorld; }
+    PhysicsWorld& getPhysicsWorld() { return physicsWorld; }
 
 private:
     float physicsAccumulator = 0.0f;
+    float colliderCacheTimer = 0.0f;
 
     PhysicsWorld physicsWorld;
 

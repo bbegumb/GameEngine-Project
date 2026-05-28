@@ -1,5 +1,7 @@
 #pragma once
+
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <scene/components/Component.h>
 
@@ -10,7 +12,8 @@ public:
 	void translate(const glm::vec3& delta);
 	void setPosition(const glm::vec3& pos);
 
-	void setRotation(const glm::vec3& rot);
+	void setRotation(const glm::vec3& eulerAngles);
+	void setRotation(const glm::quat& quat);
 	void rotate(const glm::vec3& eulerDelta);
 	void rotateAroundAxis(const glm::vec3& axis, float angle);
 
@@ -25,6 +28,7 @@ public:
 
 	glm::vec3 getPosition() const;
 	glm::vec3 getRotation() const;
+	glm::quat getRotationQuat() const;
 	glm::vec3 getScale() const;
 
 private:
@@ -32,6 +36,6 @@ private:
 	mutable glm::mat4 modelMatrix;
 
 	glm::vec3 position{ 0.0f, 0.0f, 0.0f };
-	glm::vec3 rotation{ 0.0f, 0.0f, 0.0f };
+	glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
 	glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
 };

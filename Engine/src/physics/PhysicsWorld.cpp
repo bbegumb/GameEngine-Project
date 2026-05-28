@@ -1,5 +1,7 @@
 #include "PhysicsWorld.h"
 
+#include <renderer/Mesh.h>
+
 void PhysicsWorld::init() {
 	gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
 
@@ -16,6 +18,9 @@ void PhysicsWorld::init() {
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 
 	gScene = gPhysics->createScene(sceneDesc);
+
+	defaultMaterial = std::make_shared<PhysicsMaterial>();
+	defaultMaterial.get()->getOrCreate(this);
 }
 
 void PhysicsWorld::shutdown() {
@@ -37,4 +42,27 @@ void PhysicsWorld::addActor(PxActor& actor) {
 
 void PhysicsWorld::removeActor(PxActor& actor) {
 	gScene->removeActor(actor);
+}
+
+void PhysicsWorld::cleanShapeCache() {
+	for (auto it = shapeCache.begin(); it != shapeCache.end();) {
+		if (it->second.use_count() == 1)
+			it = shapeCache.erase(it);
+		else
+			++it;
+	}
+}
+
+std::shared_ptr<CollisionShape> PhysicsWorld::getOrCreateShape(const Mesh* mesh, const glm::vec3& scale) {
+	ShapeCacheKey key{ mesh, scale };
+	
+	auto s = shapeCache.find(key);
+	if (s != shapeCache.end())
+		return s->second;
+
+	auto shape = std::make_shared<CollisionShape>(
+		CollisionShape::convexMesh(mesh->getVertices()));
+
+	shapeCache[key] = shape;
+	return shape;
 }

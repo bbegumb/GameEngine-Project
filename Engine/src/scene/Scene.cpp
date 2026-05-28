@@ -32,16 +32,31 @@ void Scene::onCameraAdded(CameraComponent* camera)
 void Scene::onUpdate(float dt) {
 	const float fixedPhysicsStep = 1.0f / 60.0f;
 	physicsAccumulator += dt;
+	colliderCacheTimer += dt;
+
+	if (colliderCacheTimer > 1.0f) {
+		physicsWorld.cleanShapeCache();
+		colliderCacheTimer -= 1.0f;
+	}
+
+	bool isPhysicsLoop = physicsAccumulator >= fixedPhysicsStep;
+
+	if (isPhysicsLoop)
+		for (auto& entity : entities) {
+			auto* rb = entity->getComponent<RigidBodyComponent>();
+			if (rb) rb->pushToWorld();
+		}
 
 	while (physicsAccumulator >= fixedPhysicsStep) {
 		physicsWorld.step(fixedPhysicsStep);
 		physicsAccumulator -= fixedPhysicsStep;
+	}
 
+	if (isPhysicsLoop)
 		for (auto& entity : entities) {
 			auto* rb = entity->getComponent<RigidBodyComponent>();
-			if (rb) rb->sync();
+			if (rb) rb->pullFromWorld();
 		}
-	}
 
 	for (const auto& entity : entities) {
 		for (const auto& component : entity->getComponents()) {
