@@ -9,6 +9,9 @@ public:
 	~Mesh();
 
 	void draw() const;
+
+	const std::vector<Vertex>& getVertices() const { return vertices; }
+
 private:
 	void setupMesh();
 

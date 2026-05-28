@@ -15,6 +15,8 @@ class Entity {
     friend class Scene;
 
 public:
+    Entity() = default;
+
     Entity(const Entity&) = delete;
     Entity& operator=(const Entity&) = delete;
 

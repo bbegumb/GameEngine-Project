@@ -69,7 +69,9 @@ namespace DemoScene
 
         ground.getTransform().setScale(glm::vec3(8.0f, 0.01f, 8.0f));
 
-        ground.addComponent<RigidBodyComponent>(Kinematic);
+        auto groundShape = std::make_shared<CollisionShape>(
+            CollisionShape::boxMesh(ground.getTransform().getScale() * 0.5f));
+        ground.addComponent<RigidBodyComponent>(Kinematic, nullptr, groundShape);
 
         Entity& cube1 = scene.createEntity("Cube A");
         auto& cube1Mesh = cube1.addComponent<MeshComponent>(cubeMesh);
@@ -77,7 +79,7 @@ namespace DemoScene
 
         cube1.getTransform().setPosition(glm::vec3(-1.5f, 5.0f, 0.0f));
 
-        cube1.addComponent<RigidBodyComponent>(Dynamic);
+        cube1.addComponent<RigidBodyComponent>();
 
         Entity& cube2 = scene.createEntity("Cube2");
         auto& cube2Mesh = cube2.addComponent<MeshComponent>(cubeMesh);
@@ -85,7 +87,7 @@ namespace DemoScene
 
         cube2.getTransform().setPosition(glm::vec3(1.5f, 0.5f, 0.0f));
 
-        cube2.addComponent<RigidBodyComponent>(Dynamic);
+        cube2.addComponent<RigidBodyComponent>();
 
         Entity& bunny = scene.createEntity("Bunny");
         auto& bunnyMeshC = bunny.addComponent<MeshComponent>(bunnyMesh);
@@ -95,6 +97,8 @@ namespace DemoScene
 
         bunny.getTransform().setPosition(glm::vec3(0.0f, 1.15f, 2.0f));
         bunny.getTransform().rotate(glm::vec3(0.0f, 0.0f, 0.0f));
+
+        bunny.addComponent<RigidBodyComponent>();
     }
 
     void createScene2(Scene& scene) {

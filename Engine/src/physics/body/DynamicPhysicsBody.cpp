@@ -1,0 +1,75 @@
+#include "DynamicPhysicsBody.h"
+
+#include <physics/PhysicsWorld.h>
+#include <physics/PhysicsMaterial.h>
+#include <physics/CollisionShape.h>
+
+using namespace physx;
+
+DynamicPhysicsBody::DynamicPhysicsBody(PhysicsWorld* world, const glm::vec3& pos,
+									   const glm::quat& rot,
+									   std::shared_ptr<PhysicsMaterial> mat,
+									   std::shared_ptr<CollisionShape> shape, const glm::vec3& scale, bool kinematic)
+	: PhysicsBody(world, mat, shape), _isKinematic(kinematic) {
+
+	PxPhysics* physics = world->getPhysics();
+	PxMaterial* pxMat = mat.get()->getOrCreate();
+
+	PxTransform pxTransform(toPx(pos), toPx(rot));
+
+	actor = physics->createRigidDynamic(pxTransform);
+	PxShape* pxShape = shape->getOrCreatePxShape(world, this->mat.get(), scale);
+	if (!pxShape) {
+		printf("Failed to create shape!\n");
+		return;
+	}
+	actor->attachShape(*pxShape);
+
+	if (_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+	else
+		PxRigidBodyExt::updateMassAndInertia(*static_cast<PxRigidDynamic*>(actor), 1.0f);
+
+	world->addActor(*actor);
+}
+
+void DynamicPhysicsBody::setGlobalPose(const glm::vec3& pos, const glm::quat& rot) {
+	actor->setGlobalPose(PxTransform(toPx(pos), toPx(rot)));
+}
+
+void DynamicPhysicsBody::setKinematicTarget(const glm::vec3& pos, const glm::quat& rot) {
+	if (_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->setKinematicTarget(PxTransform(toPx(pos), toPx(rot)));
+}
+
+void DynamicPhysicsBody::addForce(const glm::vec3& force) {
+	if (!_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->addForce(toPx(force));
+}
+
+void DynamicPhysicsBody::addImpulse(const glm::vec3& impulse) {
+	if (!_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->addForce(toPx(impulse), PxForceMode::eIMPULSE);
+}
+
+void DynamicPhysicsBody::setLinearVelocity(const glm::vec3& vel) {
+	if (!_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->setLinearVelocity(toPx(vel));
+}
+
+void DynamicPhysicsBody::setAngularVelocity(const glm::vec3& vel) {
+	if (!_isKinematic)
+		static_cast<PxRigidDynamic*>(actor)->setAngularVelocity(toPx(vel));
+}
+
+glm::vec3 DynamicPhysicsBody::getLinearVelocity() const {
+	if (_isKinematic) return glm::vec3(0.0f);
+
+	return toGlm(static_cast<PxRigidDynamic*>(actor)->getLinearVelocity());
+}
+
+glm::vec3 DynamicPhysicsBody::getAngularVelocity() const {
+	if (_isKinematic) return glm::vec3(0.0f);
+
+	return toGlm(static_cast<PxRigidDynamic*>(actor)->getAngularVelocity());
+}

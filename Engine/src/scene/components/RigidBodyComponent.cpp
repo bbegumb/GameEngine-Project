@@ -1,75 +1,80 @@
 #include "RigidBodyComponent.h"
 
 #include <scene/Entity.h>
-#include <physics/PhysicsWorld.h>
-#include <glm/glm.hpp>
+#include <scene/components/MeshComponent.h>
 
-RigidBodyComponent::~RigidBodyComponent() {
-	cleanup();
-}
-
-void RigidBodyComponent::init() {
-	PhysicsWorld& physicsWorld = owner->getScene().getPhysicsWorld();
-
-	PxPhysics* physics = physicsWorld.getPhysics();
-	mat = physics->createMaterial(0.5f, 0.3f, 0.3f);
-
-	glm::vec3 scale = owner->getTransform().getScale();
-	PxBoxGeometry boxGeometry = PxBoxGeometry(toPx(scale * 0.5f));
-
-	glm::vec3 pos = owner->getTransform().getPosition();
-	glm::vec3 rot = owner->getTransform().getRotation();
-	glm::quat q = glm::angleAxis(rot.z, glm::vec3(0, 0, 1))
-		* glm::angleAxis(rot.y, glm::vec3(0, 1, 0))
-		* glm::angleAxis(rot.x, glm::vec3(1, 0, 0));
-	PxTransform pxTransform(toPx(pos), toPx(q));
-
-	if (type == Static) {
-		actor = PxCreateStatic(*physics, pxTransform, boxGeometry, *mat);
-	}
-	else if (type == Dynamic) {
-		actor = PxCreateDynamic(*physics, pxTransform, boxGeometry, *mat, 1.0f);
-	}
-	else {
-		actor = PxCreateDynamic(*physics, pxTransform, boxGeometry, *mat, 1.0f);
-		static_cast<PxRigidDynamic*>(actor)->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-	}
-
-	physicsWorld.addActor(*actor);
-}
-
-void RigidBodyComponent::cleanup() {
-	if (!actor) return;
-
-	PhysicsWorld& physicsWorld = owner->getScene().getPhysicsWorld();
-	physicsWorld.removeActor(*actor);
-	actor->release();
-	actor = nullptr;
-
-	if (mat) {
-		mat->release();
-		mat = nullptr;
-	}
-}
-
-void RigidBodyComponent::sync() {
-	if (type == Dynamic) {
-		PxTransform pxTransform = actor->getGlobalPose();
-		owner->getTransform().setPosition(toGlm(pxTransform.p));
-		owner->getTransform().setRotation(glm::eulerAngles(toGlm(pxTransform.q)));
-	}
-	else if (type == Kinematic) {
-		glm::vec3 pos = owner->getTransform().getPosition();
-		glm::vec3 rot = owner->getTransform().getRotation();
-		glm::quat q(rot);
-		static_cast<PxRigidDynamic*>(actor)->setKinematicTarget(PxTransform(toPx(pos), toPx(q)));
-	}
-}
+#include <physics/body/StaticPhysicsBody.h>
+#include <physics/body/DynamicPhysicsBody.h>
 
 void RigidBodyComponent::onAttach() {
-	init();
+    if (!material)
+        material = std::make_shared<PhysicsMaterial>();
+
+    PhysicsWorld& world = owner->getScene().getPhysicsWorld();
+    glm::vec3 pos = owner->getTransform().getPosition();
+    glm::quat rot = owner->getTransform().getRotationQuat();
+
+    glm::vec3 scale = owner->getTransform().getScale();
+    lastScale = scale;
+    
+    if (!shape) {
+        auto* mc = owner->getComponent<MeshComponent>();
+        if (mc && mc->mesh)
+            shape = world.getOrCreateShape(mc->mesh.get(), scale);
+        else
+            shape = std::make_shared<CollisionShape>(
+                CollisionShape::boxMesh(owner->getTransform().getScale() * 0.5f));
+    }
+
+    if (type == RigidBodyType::Static) {
+        body = std::make_unique<StaticPhysicsBody>(&world, pos, rot, material, shape, scale);
+    }
+    else if (type == RigidBodyType::Dynamic) {
+        body = std::make_unique<DynamicPhysicsBody>(&world, pos, rot, material, shape, scale);
+    }
+    else if (type == RigidBodyType::Kinematic) {
+        body = std::make_unique<DynamicPhysicsBody>(&world, pos, rot, material, shape, scale, true);
+    }
 }
 
 void RigidBodyComponent::onDetach() {
-	cleanup();
+    body.reset();
+}
+
+void RigidBodyComponent::pushToWorld() {
+    glm::vec3 currentScale = owner->getTransform().getScale();
+
+    if (currentScale != lastScale) {
+        lastScale = currentScale;
+        recookShape();
+    }
+
+    glm::vec3 pos = owner->getTransform().getPosition();
+    glm::quat rot = owner->getTransform().getRotationQuat();
+
+    if (type == RigidBodyType::Dynamic) {
+        static_cast<DynamicPhysicsBody*>(body.get())->setGlobalPose(pos, rot);
+    }
+    else if (type == RigidBodyType::Kinematic) {
+        static_cast<DynamicPhysicsBody*>(body.get())->setKinematicTarget(pos, rot);
+    }
+}
+
+void RigidBodyComponent::pullFromWorld() {
+    if (type == RigidBodyType::Dynamic) {
+        owner->getTransform().setPosition(body->getPosition());
+        owner->getTransform().setRotation(body->getRotation());
+    }
+}
+
+void RigidBodyComponent::recookShape() {
+    body->clearShapes();
+
+    auto* mc = owner->getComponent<MeshComponent>();
+    if (mc && mc->mesh) {
+        PhysicsWorld& world = owner->getScene().getPhysicsWorld();
+        shape = world.getOrCreateShape(mc->mesh.get(), owner->getTransform().getScale());
+    }
+
+    body->attachShape(shape, owner->getTransform().getScale());
 }
