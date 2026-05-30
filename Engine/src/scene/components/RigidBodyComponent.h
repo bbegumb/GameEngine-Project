@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.h"
+
 #include <physics/body/PhysicsBody.h>
 #include <memory>
 
@@ -12,12 +13,16 @@ class RigidBodyComponent : public Component {
 public:
 	RigidBodyComponent(RigidBodyType type = Dynamic,
 		std::shared_ptr<PhysicsMaterial> material = nullptr,
-		std::shared_ptr<CollisionShape> shape = nullptr)
-		: type(type), material(material), shape(shape) {}
+		std::shared_ptr<CollisionShape> shape = nullptr,
+		bool forceConvex = false)
+		: type(type), material(material), shape(shape), forceConvex(forceConvex) {}
 	~RigidBodyComponent() = default;
 
-	void onAttach() override;
+	bool onAttach() override;
 	void onDetach() override;
+
+	void serialize(nlohmann::json& j) const override;
+	void deserialize(const nlohmann::json& j) override;
 
 	void pushToWorld();
 	void pullFromWorld();
@@ -30,6 +35,7 @@ private:
 
 	void recookShape();
 
+	bool forceConvex;
 	RigidBodyType type;
 	std::unique_ptr<PhysicsBody> body;
 	std::shared_ptr<PhysicsMaterial> material;

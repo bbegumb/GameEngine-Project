@@ -7,9 +7,11 @@
 #include <sstream>
 #include <stdexcept>
 
-ShaderProgram::ShaderProgram(const std::string& vertexShaderPath, const std::string& fragmentShaderPath) {
-	std::string vertexSource   = readFile(std::string(SHADER_PATH) + vertexShaderPath);
-	std::string fragmentSource = readFile(std::string(SHADER_PATH) + fragmentShaderPath);
+ShaderProgram::ShaderProgram(const std::string& name) {
+	this->name = name;
+
+	std::string vertexSource   = readFile(std::string(SHADER_PATH) + name + ".vert");
+	std::string fragmentSource = readFile(std::string(SHADER_PATH) + name + ".frag");
 
 	unsigned int vertexShader   = compileShader(GL_VERTEX_SHADER, vertexSource);
 	unsigned int fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource);

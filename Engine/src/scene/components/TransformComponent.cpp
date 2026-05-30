@@ -2,59 +2,109 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+TransformComponent::~TransformComponent() {
+	if (parent)
+		parent->removeChild(this);
+
+	for (auto* child : children)
+		child->parent = nullptr;
+}
+
 glm::mat4 TransformComponent::getMatrix() const {
 	if (isMatrixValid) return modelMatrix;
 
-	glm::mat4 model = glm::mat4(1.0f);
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, position);
+	local *= glm::mat4_cast(rotation);
+	local = glm::scale(local, scale);
 
-	model = glm::translate(model, position);
-	model *= glm::mat4_cast(rotation);
-	model = glm::scale(model, scale);
-
-	modelMatrix = model;
+	modelMatrix = parent ? parent->getMatrix() * local : local;
 	isMatrixValid = true;
-	return model;
+	return modelMatrix;
+}
+
+void TransformComponent::invalidate() {
+	isMatrixValid = false;
+	for (auto* child : children)
+		child->invalidate();
+}
+
+void TransformComponent::setParent(TransformComponent* newParent) {
+	if (onBeforeReparent && !onBeforeReparent()) return;
+
+	if (parent == newParent) return;
+
+	glm::mat4 worldMatrix = getMatrix();
+
+	if (parent)
+		parent->removeChild(this);
+	parent = newParent;
+	if (parent)
+		parent->children.push_back(this);
+
+	if (parent) {
+		glm::mat4 localMatrix = glm::inverse(parent->getMatrix()) * worldMatrix;
+
+		position = glm::vec3(localMatrix[3]);
+		scale = glm::vec3(
+			glm::length(glm::vec3(localMatrix[0])),
+			glm::length(glm::vec3(localMatrix[1])),
+			glm::length(glm::vec3(localMatrix[2])));
+
+		glm::mat3 rotMat(
+			glm::vec3(localMatrix[0]) / scale.x,
+			glm::vec3(localMatrix[1]) / scale.y,
+			glm::vec3(localMatrix[2]) / scale.z);
+		rotation = glm::quat_cast(rotMat);
+	}
+
+	invalidate();
+}
+
+void TransformComponent::removeChild(TransformComponent* child) {
+	children.erase(std::remove(children.begin(), children.end(), child), children.end());
+	invalidate();
 }
 
 void TransformComponent::translate(const glm::vec3& delta) {
 	position += delta;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::setPosition(const glm::vec3& pos) {
 	position = pos;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::setRotation(const glm::vec3& eulerAngles) {
 	rotation = glm::quat(eulerAngles);
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::setRotation(const glm::quat& quat) {
 	rotation = quat;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::rotate(const glm::vec3& eulerDelta) {
 	glm::quat delta(eulerDelta);
 	rotation = delta * rotation;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::rotateAroundAxis(const glm::vec3& axis, float angle) {
 	rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::setScale(const glm::vec3& scale) {
 	this->scale = scale;
-	isMatrixValid = false;
+	invalidate();
 }
 
 void TransformComponent::scaleBy(const glm::vec3& factor) {
 	scale *= factor;
-	isMatrixValid = false;
+	invalidate();
 }
 
 glm::mat3 TransformComponent::getRotationMatrix() const

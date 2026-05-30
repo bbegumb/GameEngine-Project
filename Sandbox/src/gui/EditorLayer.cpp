@@ -5,6 +5,7 @@
 #include <scene/Scene.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
+#include <scene/components/BehaviourComponent.h>
 
 void EditorLayer::SetScene(Scene* scene) {
     m_Scene = scene;
@@ -32,6 +33,11 @@ void EditorLayer::OnUIRender() {
 
     if (m_ShowViewport)
         ShowViewportPanel();
+}
+
+void EditorLayer::OnEntityRemoved(Entity* entity) {
+    if (m_SelectedEntity == entity)
+        m_SelectedEntity = nullptr;
 }
 
 void EditorLayer::ShowDockspace() {
@@ -136,7 +142,7 @@ void EditorLayer::ShowInspectorPanel() {
     ImGui::Text("Selected Entity: %s", m_SelectedEntity->getName().c_str());
     ImGui::Separator();
 
-    auto& transform = m_SelectedEntity->getTransform();
+    auto& transform = m_SelectedEntity->transform;
 
     glm::vec3 position = transform.getPosition();
     glm::vec3 rotation = transform.getRotation();
@@ -156,6 +162,67 @@ void EditorLayer::ShowInspectorPanel() {
 
     if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
         transform.setScale({ scl[0], scl[1], scl[2] });
+    }
+
+    for (auto& component : m_SelectedEntity->getComponents()) {
+        auto* behaviour = dynamic_cast<BehaviourComponent*>(component.get());
+        if (!behaviour) continue;
+
+        ImGui::Separator();
+        std::string name = typeid(*behaviour).name();
+        if (name.find("class ") == 0)
+            name = name.substr(6);
+        if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            for (auto& prop : behaviour->getProperties()) {
+                switch (prop.type) {
+                case PropertyType::Float:
+                    ImGui::DragFloat(prop.name.c_str(), static_cast<float*>(prop.ptr), 0.1f);
+                    break;
+                case PropertyType::Double: {
+                    float temp = static_cast<float>(*static_cast<double*>(prop.ptr));
+                    if (ImGui::DragFloat(prop.name.c_str(), &temp, 0.1f))
+                        *static_cast<double*>(prop.ptr) = static_cast<double>(temp);
+                    break;
+                }
+                case PropertyType::Int:
+                    ImGui::DragInt(prop.name.c_str(), static_cast<int*>(prop.ptr));
+                    break;
+                case PropertyType::Bool:
+                    ImGui::Checkbox(prop.name.c_str(), static_cast<bool*>(prop.ptr));
+                    break;
+                case PropertyType::Vec2:
+                    ImGui::DragFloat2(prop.name.c_str(), &static_cast<glm::vec2*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Vec3:
+                    ImGui::DragFloat3(prop.name.c_str(), &static_cast<glm::vec3*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Vec4:
+                    ImGui::DragFloat4(prop.name.c_str(), &static_cast<glm::vec4*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Mat3: {
+                    auto* m = static_cast<glm::mat3*>(prop.ptr);
+                    ImGui::Text("%s", prop.name.c_str());
+                    std::string id = "##" + prop.name;
+                    ImGui::DragFloat3((id + "0").c_str(), &(*m)[0][0], 0.1f);
+                    ImGui::DragFloat3((id + "1").c_str(), &(*m)[1][0], 0.1f);
+                    ImGui::DragFloat3((id + "2").c_str(), &(*m)[2][0], 0.1f);
+                    break;
+                }
+                case PropertyType::Mat4: {
+                    auto* m = static_cast<glm::mat4*>(prop.ptr);
+                    ImGui::Text("%s", prop.name.c_str());
+                    std::string id = "##" + prop.name;
+                    ImGui::DragFloat4((id + "0").c_str(), &(*m)[0][0], 0.1f);
+                    ImGui::DragFloat4((id + "1").c_str(), &(*m)[1][0], 0.1f);
+                    ImGui::DragFloat4((id + "2").c_str(), &(*m)[2][0], 0.1f);
+                    ImGui::DragFloat4((id + "3").c_str(), &(*m)[3][0], 0.1f);
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     ImGui::End();

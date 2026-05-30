@@ -53,7 +53,7 @@ public:
 	PxScene* getScene() const { return gScene; }
 
 	std::shared_ptr<PhysicsMaterial> getDefaultMaterial() { return defaultMaterial; }
-	std::shared_ptr<CollisionShape> getOrCreateShape(const Mesh* mesh, const glm::vec3& scale);
+	std::shared_ptr<CollisionShape> getOrCreateShape(const Mesh* mesh, const glm::vec3& scale, bool forceConvex = false);
 private:
 	PxDefaultAllocator gAllocator;
 	PxDefaultErrorCallback gErrorCallback;

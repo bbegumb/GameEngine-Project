@@ -16,6 +16,8 @@ namespace physx {
 
 class CollisionShape {
 public:
+	~CollisionShape();
+
 	CollisionShapeType type;
 
 	glm::vec3 halfExtents = glm::vec3(0.5f);

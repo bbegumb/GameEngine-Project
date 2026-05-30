@@ -6,7 +6,7 @@
 
 class ShaderProgram {
 public:
-	ShaderProgram(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
+	ShaderProgram(const std::string& name);
 	~ShaderProgram();
 
 	void setBool(const std::string& uniformName, bool value) const;
@@ -16,11 +16,15 @@ public:
 	void setMat4(const std::string& uniformName, const glm::mat4& value) const;
 
 	void use() const;
+
+	std::string getName() const { return name; }
+	void setName(const std::string& name) { this->name = name; }
 	
 	unsigned int getID() const;
 private:
 	unsigned int programID = 0;
 
+	std::string name;
 	std::string readFile(const std::string& path);
 	unsigned int compileShader(unsigned int type, const std::string& source);
 };

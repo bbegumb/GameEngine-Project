@@ -16,10 +16,10 @@ public:
 
 	physx::PxMaterial* getOrCreate(PhysicsWorld* world = nullptr);
 
-private:
 	float staticFriction;
 	float dynamicFriction;
 	float restitution;
 
+private:
 	physx::PxMaterial* pxMat = nullptr;
 };

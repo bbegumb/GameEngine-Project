@@ -1,0 +1,190 @@
+{
+    "scene": {
+        "activeCamera": "Main Camera",
+        "entities": [
+            {
+                "components": [
+                    {
+                        "aspect": 2.2534141540527344,
+                        "far": 100.0,
+                        "fov": 70.0,
+                        "near": 0.10000000149011612,
+                        "type": "CameraComponent"
+                    }
+                ],
+                "name": "Main Camera",
+                "parent": null,
+                "transform": {
+                    "position": [
+                        0.0,
+                        1.100000023841858,
+                        6.0
+                    ],
+                    "rotation": [
+                        -0.13052619993686676,
+                        0.0,
+                        0.0,
+                        0.9914448857307434
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            },
+            {
+                "components": [
+                    {
+                        "ambientStrength": 0.20000000298023224,
+                        "color": [
+                            1.0,
+                            0.949999988079071,
+                            0.75
+                        ],
+                        "diffuseStrength": 0.800000011920929,
+                        "shadowDistance": 30.0,
+                        "shadowFar": 200.0,
+                        "shadowNear": 0.10000000149011612,
+                        "shadowOrthoSize": 40.0,
+                        "specularStrength": 0.4000000059604645,
+                        "type": "DirectionalLightComponent"
+                    }
+                ],
+                "name": "Sun",
+                "parent": null,
+                "transform": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "rotation": [
+                        -0.36964383721351624,
+                        -0.2391176074743271,
+                        -0.0990457683801651,
+                        0.8923990726470947
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            },
+            {
+                "components": [
+                    {
+                        "ambientStrength": 0.05000000074505806,
+                        "color": [
+                            1.0,
+                            0.8999999761581421,
+                            0.699999988079071
+                        ],
+                        "constant": 1.0,
+                        "diffuseStrength": 1.2000000476837158,
+                        "linear": 0.09000000357627869,
+                        "quadratic": 0.03200000151991844,
+                        "specularStrength": 1.0,
+                        "type": "PointLightComponent"
+                    }
+                ],
+                "name": "Lamp",
+                "parent": null,
+                "transform": {
+                    "position": [
+                        2.0,
+                        2.0,
+                        2.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            },
+            {
+                "components": [
+                    {
+                        "mesh": "plane",
+                        "type": "MeshComponent"
+                    },
+                    {
+                        "albedo": [
+                            0.699999988079071,
+                            0.699999988079071,
+                            0.699999988079071
+                        ],
+                        "ambientReflectance": 1.0,
+                        "shader": "lit",
+                        "shininess": 32.0,
+                        "specularReflectance": 0.0,
+                        "type": "MaterialComponent"
+                    },
+                    {
+                        "bodyType": "Kinematic",
+                        "dynamicFriction": 0.5,
+                        "forceConvex": false,
+                        "restitution": 0.009999999776482582,
+                        "staticFriction": 0.5,
+                        "type": "RigidBodyComponent"
+                    }
+                ],
+                "name": "Ground",
+                "parent": null,
+                "transform": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "scale": [
+                        20.0,
+                        0.009999999776482582,
+                        20.0
+                    ]
+                }
+            },
+            {
+                "components": [
+                    {
+                        "type": "BoxSpawner"
+                    }
+                ],
+                "name": "Spawner",
+                "parent": null,
+                "transform": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            }
+        ]
+    }
+}
