@@ -21,6 +21,8 @@ void PhysicsWorld::init() {
 
 	defaultMaterial = std::make_shared<PhysicsMaterial>();
 	defaultMaterial.get()->getOrCreate(this);
+
+
 }
 
 void PhysicsWorld::shutdown() {
@@ -53,15 +55,35 @@ void PhysicsWorld::cleanShapeCache() {
 	}
 }
 
-std::shared_ptr<CollisionShape> PhysicsWorld::getOrCreateShape(const Mesh* mesh, const glm::vec3& scale) {
+std::shared_ptr<CollisionShape> PhysicsWorld::getOrCreateShape(const Mesh* mesh, const glm::vec3& scale, bool forceConvex) {
 	ShapeCacheKey key{ mesh, scale };
 	
 	auto s = shapeCache.find(key);
 	if (s != shapeCache.end())
 		return s->second;
 
-	auto shape = std::make_shared<CollisionShape>(
-		CollisionShape::convexMesh(mesh->getVertices()));
+	std::shared_ptr<CollisionShape> shape;
+
+	if (!forceConvex && mesh->primitive != MeshPrimitive::None) {
+		switch (mesh->primitive) {
+		case MeshPrimitive::Box:
+			shape = std::make_shared<CollisionShape>(CollisionShape::boxMesh(glm::vec3(0.5f)));
+			break;
+		case MeshPrimitive::Sphere:
+			shape = std::make_shared<CollisionShape>(CollisionShape::sphereMesh(0.5f));
+			break;
+		case MeshPrimitive::Plane:
+			shape = std::make_shared<CollisionShape>(CollisionShape::boxMesh(glm::vec3(0.5f, 0.001f, 0.5f)));
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (!shape) {
+		shape = std::make_shared<CollisionShape>(
+			CollisionShape::convexMesh(mesh->getVertices()));
+	}
 
 	shapeCache[key] = shape;
 	return shape;

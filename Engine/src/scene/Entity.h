@@ -1,5 +1,7 @@
 #pragma once
 
+#include <persistance/Serializable.h>
+
 #include <scene/Scene.h>
 #include <scene/components/Component.h>
 #include <scene/components/TransformComponent.h>
@@ -11,12 +13,10 @@
 #include <type_traits>
 #include <stdexcept>
 
-class Entity {
+class Entity : Serializable {
     friend class Scene;
 
 public:
-    Entity() = default;
-
     Entity(const Entity&) = delete;
     Entity& operator=(const Entity&) = delete;
 
@@ -24,6 +24,9 @@ public:
     Entity& operator=(Entity&&) = delete;
 
     ~Entity() = default;
+
+    void serialize(nlohmann::json& j) const override;
+    void deserialize(const nlohmann::json& j) override {}
 
     const std::string& getName() const { return name; }
     Scene& getScene() const { return *scene; }
@@ -34,6 +37,8 @@ public:
     template<typename T, typename... Args>
     T& addComponent(Args&&... args) {
         static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
+        static_assert(!std::is_same_v<T, TransformComponent>,
+            "TransformComponent is built-in, use getTransform()");
 
         T* existing = getComponent<T>();
         if (existing)
@@ -45,8 +50,26 @@ public:
         T* rawPtr = component.get();
         components.push_back(std::move(component));
 
+        if (!rawPtr->onAttach()) {
+            components.pop_back();
+            throw std::runtime_error("Component rejected attachment");
+        }
+
         rawPtr->onAttach();
 
+        return *rawPtr;
+    }
+
+    template<typename T, typename... Args>
+    T& addComponentDeferred(Args&&... args) {
+        static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
+        
+        std::unique_ptr<T> component = std::make_unique<T>(std::forward<Args>(args)...);
+        component->owner = this;
+
+        T* rawPtr = component.get();
+        components.push_back(std::move(component));
+        
         return *rawPtr;
     }
 
@@ -93,9 +116,13 @@ public:
     const std::vector<std::unique_ptr<Component>>& getComponents() const { return components; }
     std::vector<std::unique_ptr<Component>>& getComponents() { return components; }
 
+    TransformComponent transform;
+
 private:
-    Entity(Scene* owningScene, const std::string& entityName)
-        : scene(owningScene), name(entityName) {}
+    Entity(Scene* owningScene, const std::string& entityName, Entity* parent = nullptr);
+    Entity(Scene* owningScene, const std::string& entityName,
+        const glm::vec3& pos, const glm::vec3& rot,
+        const glm::vec3& scale, Entity* parent = nullptr);
 
 private:
     Scene* scene = nullptr;

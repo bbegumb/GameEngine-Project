@@ -6,6 +6,10 @@
 
 using namespace physx;
 
+CollisionShape::~CollisionShape() {
+	pxShape = nullptr;
+}
+
 CollisionShape CollisionShape::boxMesh(const glm::vec3& halfExtents) {
 	CollisionShape s;
 	s.type = CollisionShapeType::BoxMesh;
@@ -48,10 +52,10 @@ PxShape* CollisionShape::getOrCreatePxShape(PhysicsWorld* world, PhysicsMaterial
 
 	switch (type) {
 		case CollisionShapeType::BoxMesh:
-			pxShape = physics->createShape(PxBoxGeometry(toPx(halfExtents)), *pxMat, false);
+			pxShape = physics->createShape(PxBoxGeometry(toPx(halfExtents * scale)), *pxMat, false);
 			break;
 		case CollisionShapeType::SphereMesh:
-			pxShape = physics->createShape(PxSphereGeometry(radius), *pxMat, false);
+			pxShape = physics->createShape(PxSphereGeometry(radius * glm::max(scale.x, glm::max(scale.y, scale.z))), *pxMat, false);
 			break;
 		case CollisionShapeType::ConvexMesh: {
 			PxConvexMeshDesc desc;
@@ -109,7 +113,8 @@ PxShape* CollisionShape::getOrCreatePxShape(PhysicsWorld* world, PhysicsMaterial
 				return nullptr;
 			}
 
-			pxShape = physics->createShape(PxTriangleMeshGeometry(triangleMesh), *pxMat, false);
+			PxMeshScale meshScale(toPx(scale));
+			pxShape = physics->createShape(PxTriangleMeshGeometry(triangleMesh, meshScale), *pxMat, false);
 			break;
 		}
 	}

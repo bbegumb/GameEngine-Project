@@ -47,6 +47,18 @@ void DynamicPhysicsBody::addForce(const glm::vec3& force) {
 		static_cast<PxRigidDynamic*>(actor)->addForce(toPx(force));
 }
 
+void DynamicPhysicsBody::addForceAtPosition(const glm::vec3& force, const glm::vec3& worldPos) {
+	if (!_isKinematic)
+		PxRigidBodyExt::addForceAtPos(
+			*static_cast<PxRigidDynamic*>(actor), toPx(force), toPx(worldPos));
+}
+
+void DynamicPhysicsBody::addForceAtLocalPosition(const glm::vec3& force, const glm::vec3& localPos) {
+	if (!_isKinematic)
+		PxRigidBodyExt::addForceAtLocalPos(
+			*static_cast<PxRigidDynamic*>(actor), toPx(force), toPx(localPos));
+}
+
 void DynamicPhysicsBody::addImpulse(const glm::vec3& impulse) {
 	if (!_isKinematic)
 		static_cast<PxRigidDynamic*>(actor)->addForce(toPx(impulse), PxForceMode::eIMPULSE);

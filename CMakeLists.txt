@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+    cmake_minimum_required(VERSION 3.16)
 project(GameEngine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -16,6 +16,9 @@ file(GLOB SCENE_SRC CONFIGURE_DEPENDS Engine/src/scene/*.cpp)
 file(GLOB SCENE_COMPONENT_SRC CONFIGURE_DEPENDS Engine/src/scene/components/*.cpp)
 file(GLOB RENDERER_SRC CONFIGURE_DEPENDS Engine/src/renderer/*.cpp)
 file(GLOB SCRIPTS_SRC CONFIGURE_DEPENDS Sandbox/src/scripts/*.cpp)
+file(GLOB CORE_SRC CONFIGURE_DEPENDS Engine/src/core/*.cpp)
+file(GLOB PROPERTY_SRC CONFIGURE_DEPENDS Engine/src/property/*.cpp)
+file(GLOB PERSISTANCE_SRC CONFIGURE_DEPENDS Engine/src/persistance/*.cpp)
 
 set(PHYSX_RELEASE_DLLS 
     ${PHYSX_DIR}/release/PhysX_64.dll 
@@ -42,6 +45,9 @@ set(IMGUI_SRC
 )
 
 add_library(Engine
+    ${PERSISTANCE_SRC}
+    ${PROPERTY_SRC}
+    ${CORE_SRC}
     ${PHYSICS_SRC}
     ${PHYSICS_BODY_SRC}
     ${SCENE_SRC}
@@ -53,10 +59,11 @@ add_library(Engine
 
 target_include_directories(Engine PUBLIC
     glad/include
-    external/glm
     ${PHYSX_DIR}/include
+    external/glm
     external/imgui
     external/imgui/backends
+    external/nlohmann
     include
     Engine/src
 )
@@ -75,6 +82,7 @@ target_link_libraries(Engine PUBLIC
 target_compile_definitions(Engine PUBLIC
     SHADER_PATH="${CMAKE_SOURCE_DIR}/assets/shaders/"
     MODEL_PATH="${CMAKE_SOURCE_DIR}/assets/models/"
+    SCENES_PATH="${CMAKE_SOURCE_DIR}/assets/scenes/"
 )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
@@ -86,6 +94,13 @@ add_executable(Sandbox
     Sandbox/src/gui/ImGuiLayer.cpp
     Sandbox/src/gui/EditorLayer.cpp
     Sandbox/src/gui/ViewportFramebuffer.cpp
+)
+
+set(PHYSX_DLL_NAMES
+    PhysX_64.dll
+    PhysXCommon_64.dll
+    PhysXFoundation_64.dll
+    PhysXCooking_64.dll
 )
 
 foreach(DLL ${PHYSX_DLL_NAMES})

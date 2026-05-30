@@ -13,6 +13,8 @@ public:
     void OnUIRender();
     ImVec2 GetViewportSize() const { return m_ViewportSize; }
 
+    void OnEntityRemoved(Entity* entity);
+
 private:
     void ShowDockspace();
     void ShowMenuBar();

@@ -12,4 +12,7 @@ public:
 	std::shared_ptr<Material> material;
 
 	void setMaterial(std::shared_ptr<Material> material) { this->material = material; }
+
+	void serialize(nlohmann::json& j) const override;
+	void deserialize(const nlohmann::json& j) override;
 };

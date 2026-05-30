@@ -1,33 +1,47 @@
 #include "CameraComponent.h"
 
+#include <persistance/ComponentFactory.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 
+REGISTER(CameraComponent);
+
 glm::mat4 CameraComponent::getViewMatrix() const {
-    const auto& transform = owner->getTransform();
+    glm::mat4 world = owner->getTransform().getMatrix();
 
-    glm::mat4 view = glm::mat4(1.0f);
-    glm::vec3 rotation = transform.getRotation();
-    glm::vec3 pos = transform.getPosition();
-    view = glm::rotate(view, -rotation.z, glm::vec3(0, 0, 1));
-    view = glm::rotate(view, -rotation.y, glm::vec3(0, 1, 0));
-    view = glm::rotate(view, -rotation.x, glm::vec3(1, 0, 0));
-    view = glm::translate(view, -pos);
+    glm::vec3 pos = glm::vec3(world[3]);
+    glm::vec3 forward = glm::normalize(glm::vec3(world[2]));
+    glm::vec3 up = glm::normalize(glm::vec3(world[1]));
 
-    return view;
+    return glm::lookAt(pos, pos - forward, up);
 }
 
 glm::mat4 CameraComponent::getProjectionMatrix() const {
 	return glm::perspective(glm::radians(fov), aspect, nearPlane, farPlane);
 }
 
-void CameraComponent::onAttach() {
+bool CameraComponent::onAttach() {
     owner->getScene().onCameraAdded(this);
+    return true;
 }
 
 void CameraComponent::onDetach() {
     if (owner->getScene().getActiveCamera() == this)
         owner->getScene().setActiveCamera(nullptr);
+}
+
+void CameraComponent::serialize(nlohmann::json& j) const {
+    j["fov"] = fov;
+    j["aspect"] = aspect;
+    j["near"] = nearPlane;
+    j["far"] = farPlane;
+}
+
+void CameraComponent::deserialize(const nlohmann::json& j) {
+    fov = j.value("fov", 70.0f);
+    aspect = j.value("aspect", 1.25f);
+    nearPlane = j.value("near", 0.1f);
+    farPlane = j.value("far", 100.0f);
 }

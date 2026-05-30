@@ -20,7 +20,7 @@
 Renderer::Renderer() {
 	initShadowMap();
 
-	depthShader = std::make_unique<ShaderProgram>("depth.vert", "depth.frag");
+	depthShader = std::make_unique<ShaderProgram>("depth");
 }
 
 Renderer::~Renderer() {
@@ -137,7 +137,7 @@ void Renderer::drawEntity(const Entity& entity,
 	const glm::mat4 view = camera->getViewMatrix();
 	const glm::mat4 proj = camera->getProjectionMatrix();
 
-	glm::vec3 cameraPosition = camera->getEntity()->getTransform().getPosition();
+	glm::vec3 cameraPosition = camera->getEntity()->transform.getPosition();
 
 	Material& material = *(materialComponent->material);
 	ShaderProgram& shader = *(material.shader);
@@ -164,7 +164,7 @@ void Renderer::drawEntity(const Entity& entity,
 	}
 
 	if (pointLight) {
-		glm::vec3 pointLightPos = pointLight->getEntity()->getTransform().getPosition();
+		glm::vec3 pointLightPos = pointLight->getEntity()->transform.getPosition();
 
 		shader.setBool("uHasPointLight", true);
 		shader.setVec3("uPointLight.position", pointLightPos);

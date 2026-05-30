@@ -3,38 +3,33 @@
 #include <scene/components/Component.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+class CameraComponent;
 
 class DirectionalLightComponent : public Component {
 public:
+    DirectionalLightComponent(float ambient = 0.2f, float diffuse = 1.0f, float specular = 0.5f,
+        float shadowDistance = 30.0f, float shadowOrthoSize = 40.0f, float shadowNear = 0.1f, float shadowFar = 200.0f)
+        : ambientStrength(ambient), diffuseStrength(diffuse), specularStrength(specular),
+          shadowDistance(shadowDistance), shadowOrthoSize(shadowOrthoSize),
+          shadowNear(shadowNear), shadowFar(shadowFar) {}
+
 	glm::vec3 color = glm::vec3{ 1.0f, 1.0f, 1.0f };
 
-	float ambientStrength = 0.2f;
-	float diffuseStrength = 1.0f;
-	float specularStrength = 0.5f;
+	float ambientStrength;
+	float diffuseStrength;
+	float specularStrength;
 
-    float shadowDistance = 30.0f;
-	float shadowOrthoSize = 40.0f;
-	float shadowNear = 0.1f;
-	float shadowFar = 200.0f;
+    float shadowDistance;
+	float shadowOrthoSize;
+    float shadowNear;
+    float shadowFar;
 
-    glm::mat4 getLightSpaceMatrix(const CameraComponent* camera) const {
-        glm::vec3 camPos = camera->getEntity()->getTransform().getPosition();
-        glm::vec3 camForward = camera->getEntity()->getTransform().forward();
-        glm::vec3 center = camPos + camForward * shadowDistance * 0.5f;
+    glm::mat4 getLightSpaceMatrix(const CameraComponent* camera) const;
 
-        glm::vec3 lightDir = glm::normalize(getDirection());
-        glm::vec3 lightPos = center - lightDir * shadowFar * 0.5f;
+    glm::vec3 getDirection() const;
 
-        glm::mat4 view = glm::lookAt(lightPos, center, glm::vec3(0, 1, 0));
-        glm::mat4 proj = glm::ortho(
-            -shadowOrthoSize, shadowOrthoSize,
-            -shadowOrthoSize, shadowOrthoSize,
-            shadowNear, shadowFar
-        );
-        return proj * view;
-    }
-
-    glm::vec3 getDirection() const {
-        return owner->getTransform().forward();
-    }
+    void serialize(nlohmann::json& j) const override;
+    void deserialize(const nlohmann::json& j) override;
 };

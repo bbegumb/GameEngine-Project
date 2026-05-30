@@ -17,7 +17,10 @@ public:
 	void setKinematicTarget(const glm::vec3& pos, const glm::quat& rot);
 
 	void addForce(const glm::vec3& force);
+	void addForceAtPosition(const glm::vec3& force, const glm::vec3& worldPos);
+	void addForceAtLocalPosition(const glm::vec3& force, const glm::vec3& localPos);
 	void addImpulse(const glm::vec3& impulse);
+
 	void setLinearVelocity(const glm::vec3& v);
 	void setAngularVelocity(const glm::vec3& v);
 

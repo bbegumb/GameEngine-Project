@@ -4,8 +4,5 @@
 #include <glm/glm.hpp>
 
 void Rotator::onUpdate(float dt) {
-	glm::vec3 rot = owner->getTransform().getRotation();
-	rot.y += dt;
-
-	owner->getTransform().setRotation(rot);
+    if (enabled) owner->transform.rotateAroundAxis(axis, dt * speed);
 }

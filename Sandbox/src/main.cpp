@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include <persistance/SceneSerializer.h>
+#include <core/Input.h>
 #include <renderer/Renderer.h>
 #include <scene/scene_all.h>
 #include <DemoScene.h>
@@ -49,9 +51,11 @@ int main() {
 
     glViewport(0, 0, 1000, 800);
 
+    Input::init(window);
+
     Scene scene;
     Renderer renderer;
-    DemoScene::createScene1(scene);
+    DemoScene::createScene3(scene);
 
     ImGuiLayer imguiLayer;
     imguiLayer.Init(window);
@@ -61,6 +65,10 @@ int main() {
 
     ViewportFramebuffer viewportFramebuffer;
     viewportFramebuffer.Init(1000, 800);
+
+    scene.onEntityRemoved = [&editorLayer](Entity* entity) {
+        editorLayer.OnEntityRemoved(entity);
+    };
 
     float last = 0.0f;
 
@@ -75,6 +83,18 @@ int main() {
 
         glfwPollEvents();
 
+        if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::S)) {
+            SceneSerializer::save(scene, "scene1.json");
+            printf("Scene saved!\n");
+        }
+
+        if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::O)) {
+            scene.clear();
+            SceneSerializer::load(scene, "scene1.json");
+            printf("Scene loaded!\n");
+        }
+        
+        Input::update();
         scene.onUpdate(dt);
 
         ImVec2 viewportSize = editorLayer.GetViewportSize();

@@ -7,6 +7,8 @@
 
 class TransformComponent : public Component {
 public:
+	~TransformComponent();
+
 	glm::mat4 getMatrix() const;
 
 	void translate(const glm::vec3& delta);
@@ -20,6 +22,9 @@ public:
 	void setScale(const glm::vec3& scale);
 	void scaleBy(const glm::vec3& factor);
 
+	void setParent(TransformComponent* newParent);
+	void removeChild(TransformComponent* child);
+
 	glm::mat3 getRotationMatrix() const;
 
 	glm::vec3 forward() const;
@@ -31,7 +36,15 @@ public:
 	glm::quat getRotationQuat() const;
 	glm::vec3 getScale() const;
 
+	TransformComponent* getParent() const { return parent; }
+
+	std::function<bool()> onBeforeReparent = nullptr;
 private:
+	void invalidate();
+
+	TransformComponent* parent = nullptr;
+	std::vector<TransformComponent*> children;
+
 	mutable bool isMatrixValid = false;
 	mutable glm::mat4 modelMatrix;
 
