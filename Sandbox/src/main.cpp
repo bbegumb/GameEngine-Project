@@ -93,6 +93,8 @@ int main() {
     ViewportFramebuffer viewportFramebuffer;
     viewportFramebuffer.Init(1000, 800);
 
+    editorLayer.SetViewportTexture(viewportFramebuffer.GetColorAttachment());
+
     scene.onEntityRemoved = [&editorLayer](Entity* entity) {
         editorLayer.OnEntityRemoved(entity);
     };

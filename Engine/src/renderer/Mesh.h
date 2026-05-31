@@ -14,8 +14,8 @@ enum class MeshPrimitive { None, Box, Sphere, Plane };
 
 class Mesh {
 public:
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
-	~Mesh();
+    Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+    ~Mesh();
 
 	void draw() const;
 	void drawSubMesh(int index) const;
@@ -31,15 +31,17 @@ public:
 	std::string getName() const { return name; }
 	void setName(const std::string& name) { this->name = name; }
 
+	glm::vec3 computeCentroid() const;
+
 private:
-	void setupMesh();
+    void setupMesh();
 
 	std::string name;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<SubMesh> submeshes;
 
-	unsigned int VAO = 0;
-	unsigned int VBO = 0;
-	unsigned int EBO = 0;
+    unsigned int VAO = 0;
+    unsigned int VBO = 0;
+    unsigned int EBO = 0;
 };
