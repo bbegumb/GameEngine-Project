@@ -124,72 +124,86 @@ void Renderer::render(const Scene& scene) const {
 }
 
 void Renderer::drawEntity(const Entity& entity,
-						  const MeshComponent* meshComponent,
-						  const MaterialComponent* materialComponent,
-						  const CameraComponent* camera,
-						  const DirectionalLightComponent* dirLight,
-						  const PointLightComponent* pointLight,
-						  const glm::mat4 lightSpaceMatrix) const {
+	const MeshComponent* meshComponent,
+	const MaterialComponent* materialComponent,
+	const CameraComponent* camera,
+	const DirectionalLightComponent* dirLight,
+	const PointLightComponent* pointLight,
+	const glm::mat4& lightSpaceMatrix) const {
 
-	if (!meshComponent->mesh || !materialComponent->material->shader) return;
+	if (!meshComponent->mesh) return;
 
 	const glm::mat4 model = entity.getTransform().getMatrix();
 	const glm::mat4 view = camera->getViewMatrix();
 	const glm::mat4 proj = camera->getProjectionMatrix();
+	glm::vec3 cameraPosition = glm::vec3(glm::inverse(view)[3]);
 
-	glm::vec3 cameraPosition = camera->getEntity()->transform.getPosition();
+	auto drawWithMaterial = [&](Material& material) {
+		ShaderProgram& shader = *material.shader;
+		material.apply();
+		shader.use();
 
-	Material& material = *(materialComponent->material);
-	ShaderProgram& shader = *(material.shader);
+		shader.setMat4("uModel", model);
+		shader.setMat4("uView", view);
+		shader.setMat4("uProj", proj);
+		shader.setMat4("uLightSpaceMatrix", lightSpaceMatrix);
+		shader.setVec3("uViewPos", cameraPosition);
 
-	material.apply();
-	shader.use();
+		if (dirLight) {
+			shader.setBool("uHasDirectionalLight", true);
+			shader.setVec3("uDirectionalLight.direction", dirLight->getDirection());
+			shader.setVec3("uDirectionalLight.color", dirLight->color);
+			shader.setFloat("uDirectionalLight.ambientIntensity", dirLight->ambientStrength);
+			shader.setFloat("uDirectionalLight.diffuseIntensity", dirLight->diffuseStrength);
+			shader.setFloat("uDirectionalLight.specularIntensity", dirLight->specularStrength);
+		}
+		else {
+			shader.setBool("uHasDirectionalLight", false);
+		}
 
-	shader.setMat4("uLightSpaceMatrix", lightSpaceMatrix);
-	shader.setMat4("uModel", model);
-	shader.setMat4("uView", view);
-	shader.setMat4("uProj", proj);
-	shader.setVec3("uViewPos", cameraPosition);
+		if (pointLight) {
+			glm::vec3 pointLightPos = pointLight->getEntity()->getTransform().getPosition();
+			shader.setBool("uHasPointLight", true);
+			shader.setVec3("uPointLight.position", pointLightPos);
+			shader.setVec3("uPointLight.color", pointLight->color);
+			shader.setFloat("uPointLight.ambientIntensity", pointLight->ambientStrength);
+			shader.setFloat("uPointLight.diffuseIntensity", pointLight->diffuseStrength);
+			shader.setFloat("uPointLight.specularIntensity", pointLight->specularStrength);
+			shader.setFloat("uPointLight.constant", pointLight->constant);
+			shader.setFloat("uPointLight.linear", pointLight->linear);
+			shader.setFloat("uPointLight.quadratic", pointLight->quadratic);
+		}
+		else {
+			shader.setBool("uHasPointLight", false);
+		}
 
-	if (dirLight) {
-		shader.setBool("uHasDirectionalLight", true);
-		shader.setVec3("uDirectionalLight.direction", dirLight->getDirection());
-		shader.setVec3("uDirectionalLight.color", dirLight->color);
-		shader.setFloat("uDirectionalLight.ambientIntensity", dirLight->ambientStrength);
-		shader.setFloat("uDirectionalLight.diffuseIntensity", dirLight->diffuseStrength);
-		shader.setFloat("uDirectionalLight.specularIntensity", dirLight->specularStrength);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
+		shader.setInt("uShadowMap", 4);
+		};
+
+	const auto& submeshes = meshComponent->mesh->getSubMeshes();
+
+	if (submeshes.empty()) {
+		Material* mat = materialComponent->getMaterial(0);
+		if (!mat || !mat->shader) return;
+		drawWithMaterial(*mat);
+		meshComponent->mesh->draw();
 	}
 	else {
-		shader.setBool("uHasDirectionalLight", false);
+		for (int i = 0; i < static_cast<int>(submeshes.size()); i++) {
+			Material* mat = materialComponent->getMaterial(submeshes[i].materialIndex);
+			if (!mat) mat = materialComponent->getMaterial(0);
+			if (!mat || !mat->shader) continue;
+			drawWithMaterial(*mat);
+			meshComponent->mesh->drawSubMesh(i);
+		}
 	}
-
-	if (pointLight) {
-		glm::vec3 pointLightPos = pointLight->getEntity()->transform.getPosition();
-
-		shader.setBool("uHasPointLight", true);
-		shader.setVec3("uPointLight.position", pointLightPos);
-		shader.setVec3("uPointLight.color", pointLight->color);
-		shader.setFloat("uPointLight.ambientIntensity", pointLight->ambientStrength);
-		shader.setFloat("uPointLight.diffuseIntensity", pointLight->diffuseStrength);
-		shader.setFloat("uPointLight.specularIntensity", pointLight->specularStrength);
-		shader.setFloat("uPointLight.constant", pointLight->constant);
-		shader.setFloat("uPointLight.linear", pointLight->linear);
-		shader.setFloat("uPointLight.quadratic", pointLight->quadratic);
-	}
-	else {
-		shader.setBool("uHasPointLight", false);
-	}
-
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
-	shader.setInt("uShadowMap", 4);
-
-	meshComponent->mesh->draw();
 }
 
 void Renderer::drawEntityDepth(const Entity& entity,
-							   const MeshComponent *meshComponent,
-							   const glm::mat4& lightSpaceMatrix) const {
+	const MeshComponent* meshComponent,
+	const glm::mat4& lightSpaceMatrix) const {
 	glm::mat4 model = entity.getTransform().getMatrix();
 	depthShader->setMat4("uLightSpaceMatrix", lightSpaceMatrix);
 	depthShader->setMat4("uModel", model);

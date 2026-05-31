@@ -54,3 +54,11 @@ void Mesh::draw() const
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, static_cast<GLuint>(indices.size()), GL_UNSIGNED_INT, 0);
 }
+
+void Mesh::drawSubMesh(int index) const {
+	glBindVertexArray(VAO);
+	const auto& sub = submeshes[index];
+	glDrawElements(GL_TRIANGLES, sub.indexCount, GL_UNSIGNED_INT,
+		(void*)(sub.indexOffset * sizeof(unsigned int)));
+	glBindVertexArray(0);
+}

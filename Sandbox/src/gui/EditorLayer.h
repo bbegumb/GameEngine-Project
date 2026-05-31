@@ -1,6 +1,8 @@
 #pragma once
 
-#include "imgui.h"
+#include <imgui.h>
+
+#include <functional>
 
 class Scene;
 class Entity;
@@ -15,6 +17,8 @@ public:
 
     void OnEntityRemoved(Entity* entity);
 
+    std::function<void()> onSave;
+    std::function<void()> onLoad;
 private:
     void ShowDockspace();
     void ShowMenuBar();
@@ -25,6 +29,8 @@ private:
     void ShowViewportPanel();
 
 private:
+    Entity* GetValidSelectedEntity();
+
     Scene* m_Scene = nullptr;
     Entity* m_SelectedEntity = nullptr;
 

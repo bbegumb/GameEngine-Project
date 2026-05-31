@@ -7,11 +7,19 @@ class Material;
 
 class MaterialComponent : public Component {
 public:
-	MaterialComponent(std::shared_ptr<Material> material = nullptr) : material(material) {}
+    MaterialComponent(std::shared_ptr<Material> material = nullptr) {
+        if (material) materials.push_back(material);
+    }
 
-	std::shared_ptr<Material> material;
+    MaterialComponent(std::vector<std::shared_ptr<Material>> mats) : materials(std::move(mats)) {}
 
-	void setMaterial(std::shared_ptr<Material> material) { this->material = material; }
+    std::vector<std::shared_ptr<Material>> materials;
+
+    Material* getMaterial(int index = 0) const {
+        if (index < 0 || index >= static_cast<int>(materials.size()))
+            return nullptr;
+        return materials[index].get();
+    }
 
 	void serialize(nlohmann::json& j) const override;
 	void deserialize(const nlohmann::json& j) override;

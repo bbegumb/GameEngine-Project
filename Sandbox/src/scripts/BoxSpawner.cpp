@@ -13,7 +13,6 @@ void BoxSpawner::onUpdate(float dt) {
     static auto shader = AssetManager::getShader("lit");
     static auto cubeMesh = AssetManager::getMesh("cube");
     static auto sphereMesh = AssetManager::getMesh("sphere");
-    static int count = 0;
 
     auto randomColor = []() {
         return glm::vec3(

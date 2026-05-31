@@ -43,6 +43,9 @@ uniform PointLight uPointLight;
 
 uniform Material uMaterial;
 
+uniform bool uHasTexture;
+uniform sampler2D uDiffuseTexture;
+
 uniform sampler2D uShadowMap;
 
 float calculateShadow(vec4 fragPosLS, vec3 normal, vec3 lightDir) {
@@ -69,14 +72,14 @@ float calculateShadow(vec4 fragPosLS, vec3 normal, vec3 lightDir) {
     return shadow;
 }
 
-vec3 calculateDirectionalLight(DirectionalLight light, Material mat, vec3 normal, vec3 viewDir) {
+vec3 calculateDirectionalLight(DirectionalLight light, Material mat, vec3 normal, vec3 viewDir, vec3 albedo) {
     vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), mat.shininess);
 
-    vec3 ambient = mat.ambientReflectance * light.ambientIntensity * mat.albedo * light.color;
-    vec3 diffuse = light.diffuseIntensity * diff * mat.albedo * light.color;
+    vec3 ambient = mat.ambientReflectance * light.ambientIntensity * albedo * light.color;
+    vec3 diffuse = light.diffuseIntensity * diff * albedo * light.color;
     vec3 specular = mat.specularReflectance * light.specularIntensity * spec * light.color;
 
     float shadow = calculateShadow(vFragPosLightSpace, normal, lightDir);
@@ -84,7 +87,7 @@ vec3 calculateDirectionalLight(DirectionalLight light, Material mat, vec3 normal
     return ambient + (1.0 - shadow) * (diffuse + specular);
 }
 
-vec3 calculatePointLight(PointLight light, Material mat, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 calculatePointLight(PointLight light, Material mat, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 albedo)
 {
     vec3 lightDir = normalize(light.position - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
@@ -97,8 +100,8 @@ vec3 calculatePointLight(PointLight light, Material mat, vec3 normal, vec3 fragP
         light.quadratic * distance * distance
         );
 
-    vec3 ambient = mat.ambientReflectance * light.ambientIntensity * mat.albedo * light.color;
-    vec3 diffuse = light.diffuseIntensity * diff * mat.albedo * light.color;
+    vec3 ambient = mat.ambientReflectance * light.ambientIntensity * albedo * light.color;
+    vec3 diffuse = light.diffuseIntensity * diff * albedo * light.color;
     vec3 specular = mat.specularReflectance * light.specularIntensity * spec * light.color;
     ambient *= attenuation;
     diffuse *= attenuation;
@@ -112,13 +115,14 @@ void main()
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uViewPos - vFragPos);
 
+    vec3 albedo = uHasTexture ? texture(uDiffuseTexture, vTexCoord).rgb * uMaterial.albedo : uMaterial.albedo;
     vec3 lighting = vec3(0.0);
 
     if (uHasDirectionalLight)
-        lighting += calculateDirectionalLight(uDirectionalLight, uMaterial, normal, viewDir);
+        lighting += calculateDirectionalLight(uDirectionalLight, uMaterial, normal, viewDir, albedo);
 
     if (uHasPointLight)
-        lighting += calculatePointLight(uPointLight, uMaterial, normal, vFragPos, viewDir);
+        lighting += calculatePointLight(uPointLight, uMaterial, normal, vFragPos, viewDir, albedo);
 
     FragColor = vec4(lighting, 1.0);
 }
