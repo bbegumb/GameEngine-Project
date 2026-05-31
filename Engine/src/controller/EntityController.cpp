@@ -1,4 +1,3 @@
-
 #include "EntityController.h"
 
 Entity* EntityController::selectedEntity = nullptr;

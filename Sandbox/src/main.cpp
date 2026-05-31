@@ -10,6 +10,8 @@
 #include "gui/ImGuiLayer.h"
 #include "gui/EditorLayer.h"
 #include "gui/ViewportFramebuffer.h"
+#include <reflection/Reflection.h>
+#include <reflection/ReflectionGenerated.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -20,6 +22,8 @@ int main() {
         std::cout << "Failed to initialize GLFW\n";
         return -1;
     }
+    
+    RegisterGeneratedReflection();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -61,6 +65,8 @@ int main() {
 
     ViewportFramebuffer viewportFramebuffer;
     viewportFramebuffer.Init(1000, 800);
+
+    editorLayer.SetViewportTexture(viewportFramebuffer.GetColorAttachment());
 
     float last = 0.0f;
 

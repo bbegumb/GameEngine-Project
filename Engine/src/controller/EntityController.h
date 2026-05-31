@@ -3,12 +3,16 @@
 #include <string>
 
 #include <scene/Entity.h>
-#include <scene/components/TransformComponent.h>
-#include <scene/components/CameraComponent.h>
+#include <renderer/PrimitiveFactory.h>
+#include <renderer/ShaderProgram.h>
+#include <renderer/Material.h>
 #include <scene/components/MeshComponent.h>
 #include <scene/components/MaterialComponent.h>
 #include <scene/components/PointLightComponent.h>
 #include <scene/components/DirectionalLightComponent.h>
+#include <scene/components/CameraComponent.h>
+#include <scene/components/Component.h>
+
 
 class EntityController{
 public:

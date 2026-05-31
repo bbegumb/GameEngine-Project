@@ -71,7 +71,7 @@ namespace DemoScene
         Entity& cube1 = scene.createEntity("Cube A");
         auto& cube1Mesh = cube1.addComponent<MeshComponent>(cubeMesh);
         auto& cube1Mat = cube1.addComponent<MaterialComponent>(materialRed);
-
+        
         cube1.getTransform().setPosition(glm::vec3(-1.5f, 0.5f, 0.0f));
 
         auto& rotator = cube1.addComponent<Rotator>();

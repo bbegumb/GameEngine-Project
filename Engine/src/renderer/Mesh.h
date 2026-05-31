@@ -5,17 +5,19 @@
 
 class Mesh {
 public:
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
-	~Mesh();
+    Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+    ~Mesh();
 
-	void draw() const;
+    void draw() const;
+    glm::vec3 computeCentroid() const;
+
 private:
-	void setupMesh();
+    void setupMesh();
 
-	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
 
-	unsigned int VAO = 0;
-	unsigned int VBO = 0;
-	unsigned int EBO = 0;
+    unsigned int VAO = 0;
+    unsigned int VBO = 0;
+    unsigned int EBO = 0;
 };

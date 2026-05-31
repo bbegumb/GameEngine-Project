@@ -8,6 +8,24 @@ add_subdirectory(external/glfw)
 
 find_package(OpenGL REQUIRED)
 
+add_executable(ReflectionGenerator
+    Tools/ReflectionGenerator.cpp
+)
+
+set(GENERATED_REFLECTION_CPP
+    ${CMAKE_BINARY_DIR}/ReflectionGenerated.cpp
+)
+
+add_custom_command(
+    OUTPUT ${GENERATED_REFLECTION_CPP}
+    COMMAND ReflectionGenerator
+            ${CMAKE_SOURCE_DIR}/Engine/src/scene/components
+            ${GENERATED_REFLECTION_CPP}
+            ${CMAKE_SOURCE_DIR}
+    DEPENDS ReflectionGenerator
+    COMMENT "Generating reflection code"
+)
+
 file(GLOB SCENE_SRC CONFIGURE_DEPENDS Engine/src/scene/*.cpp)
 file(GLOB SCENE_COMPONENT_SRC CONFIGURE_DEPENDS Engine/src/scene/components/*.cpp)
 file(GLOB RENDERER_SRC CONFIGURE_DEPENDS Engine/src/renderer/*.cpp)
@@ -28,7 +46,17 @@ add_library(Engine
     ${SCENE_COMPONENT_SRC}
     ${RENDERER_SRC}
     ${IMGUI_SRC}
+    ${GENERATED_REFLECTION_CPP}
     Engine/src/glad.c
+    Engine/src/gui/ImGuiLayer.cpp
+    Engine/src/gui/EditorLayer.cpp
+    Engine/src/gui/ViewportFramebuffer.cpp
+    Engine/src/controller/SceneController.cpp
+    Engine/src/controller/EntityController.cpp
+    Engine/src/controller/TransformController.cpp
+    Engine/src/gui/Gizmohelp.cpp
+    Engine/src/renderer/LineRenderer.cpp
+    Engine/src/controller/EditorSelectionController.cpp
 )
 
 target_include_directories(Engine PUBLIC
@@ -56,15 +84,12 @@ add_executable(Sandbox
     ${SCRIPTS_SRC}
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
-    Sandbox/src/gui/ImGuiLayer.cpp
-    Sandbox/src/gui/EditorLayer.cpp
-    Sandbox/src/gui/ViewportFramebuffer.cpp
 )
 
 target_include_directories(Sandbox PUBLIC
     Engine/src
     Sandbox/src
-    Sandbox/src/gui
+    Engine/src/gui
 )
 
 target_link_libraries(Sandbox PRIVATE Engine)

@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <gui/Gizmohelp.h>
 
 class ShaderProgram;
 class Scene;
@@ -16,9 +17,10 @@ class Renderer {
 public:
 	Renderer();
 	~Renderer();
-
+    Gizmo gizmo;
+    
 	void setClearColor(const glm::vec4& color) { clearColor = color; }
-	void render(const Scene& scene) const;
+	void render(const Scene& scene);
 
 private:
 	void initShadowMap();

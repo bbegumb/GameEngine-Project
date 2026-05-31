@@ -1,10 +1,19 @@
 #include "EditorLayer.h"
 
 #include "imgui.h"
-
+#include <gui/Gizmohelp.h>
 #include <controller/SceneController.h>
 #include <controller/EntityController.h>
 #include <controller/TransformController.h>
+#include <reflection/Reflection.h>
+#include <reflection/ReflectionDraw.h>
+#include <controller/EditorSelectionController.h>
+#include <scene/Scene.h>
+#include <scene/Entity.h>
+#include <scene/components/CameraComponent.h>
+#include <scene/components/TransformComponent.h>
+#include <glm/glm.hpp>
+#include <cmath>
 
 void EditorLayer::SetScene(Scene* scene) {
     SceneController::setScene(scene);
@@ -144,94 +153,32 @@ void EditorLayer::ShowInspectorPanel() {
     }
     
     if (ImGui::BeginPopup("AddComponentPopup")) {
-        if (ImGui::MenuItem("Camera")) {
-            EntityController::addCamera(entity);
-        }
-        
-        if (ImGui::MenuItem("Mesh")) {
-            EntityController::addMesh(entity);
+        for (auto& [typeName, typeInfo] : ReflectionRegistry::getTypes()) {
+            if (typeName == "TransformComponent")
+                continue;
+
+            if (ImGui::MenuItem(typeInfo.name.c_str())) {
+                if (typeInfo.addToEntity) {
+                    typeInfo.addToEntity(entity);
+                }
+            }
         }
 
-        if (ImGui::MenuItem("Material")) {
-            EntityController::addMaterial(entity);
-        }
-
-        if (ImGui::MenuItem("Point Light")) {
-            EntityController::addPointLight(entity);
-        }
-
-        if (ImGui::MenuItem("Directional Light")) {
-            EntityController::addDirectionalLight(entity);
-        }
         ImGui::EndPopup();
-
     }
-    
+
     ImGui::Separator();
     
-    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-        glm::vec3 position = TransformController::getPosition(entity);
-        glm::vec3 rotation = TransformController::getRotation(entity);
-        glm::vec3 scale = TransformController::getScale(entity);
+    for (auto& componentPtr : entity->getComponents()) {
+        Component* component = componentPtr.get();
 
-        if (ImGui::DragFloat3("Position", &position.x, 0.1f)) {
-            TransformController::setPosition(entity, position);
-        }
+        TypeInfo* type = ReflectionRegistry::getType(component);
 
-        if (ImGui::DragFloat3("Rotation", &rotation.x, 0.1f)) {
-            TransformController::setRotation(entity, rotation);
-        }
-
-        if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 100.0f)) {
-            TransformController::setScale(entity, scale);
+        if (type && ImGui::CollapsingHeader(type->name.c_str())) {
+            DrawReflectedFields(component, type);
         }
     }
     
-    if (CameraComponent* camera = EntityController::getCamera(entity)) {
-        if (ImGui::CollapsingHeader("Camera")) {
-            ImGui::DragFloat("FOV", &camera->fov, 0.1f);
-            ImGui::DragFloat("Aspect", &camera->aspect, 0.1f);
-            ImGui::DragFloat("Near Plane", &camera->nearPlane, 0.01f);
-            ImGui::DragFloat("Far Plane", &camera->farPlane, 1.0f);
-        }
-    }
-    
-    if (MeshComponent* mesh = EntityController::getMesh(entity)) {
-        if (ImGui::CollapsingHeader("Mesh")) {
-            ImGui::Text("Mesh Component exists");
-            ImGui::Text("Mesh assigned: %s", mesh->mesh ? "Yes" : "No");
-        }
-    }
-
-    if (MaterialComponent* material = EntityController::getMaterial(entity)) {
-        if (ImGui::CollapsingHeader("Material")) {
-            ImGui::Text("Material Component exists");
-            ImGui::Text("Material assigned: %s", material->material ? "Yes" : "No");
-        }
-    }
-    
-    if (PointLightComponent* light = EntityController::getPointLight(entity)) {
-        if (ImGui::CollapsingHeader("Point Light")) {
-            ImGui::DragFloat3("Color", &light->color.x, 0.1f);
-            ImGui::DragFloat("P_Ambient", &light->ambientStrength, 0.01f);
-            ImGui::DragFloat("P_Diffuse", &light->diffuseStrength, 0.01f);
-            ImGui::DragFloat("P_Specular", &light->specularStrength, 0.01f);
-            ImGui::DragFloat("Constant", &light->constant, 0.01f);
-            ImGui::DragFloat("Linear", &light->linear, 0.01f);
-            ImGui::DragFloat("Quadratic", &light->quadratic, 0.01f);
-        }
-    }
-
-    if (DirectionalLightComponent* light = EntityController::getDirectionalLight(entity)) {
-        if (ImGui::CollapsingHeader("Directional Light")) {
-            ImGui::DragFloat3("Direction", &light->direction.x, 0.1f);
-            ImGui::DragFloat3("Color", &light->color.x, 0.1f);
-            ImGui::DragFloat("Ambient", &light->ambientStrength, 0.01f);
-            ImGui::DragFloat("Diffuse", &light->diffuseStrength, 0.01f);
-            ImGui::DragFloat("Specular", &light->specularStrength, 0.01f);
-        }
-    }
-
     ImGui::End();
 
 }
@@ -253,17 +200,94 @@ void EditorLayer::ShowConsolePanel() {
 void EditorLayer::ShowViewportPanel() {
     ImGui::Begin("Viewport", &showViewport);
 
-     viewportSize = ImGui::GetContentRegionAvail();
-
-    if (viewportTexture != 0 &&  viewportSize.x > 0.0f &&  viewportSize.y > 0.0f) {
-        ImGui::Image(
-            (ImTextureID)(intptr_t) viewportTexture,
-             viewportSize,
-            ImVec2(0, 1),
-            ImVec2(1, 0)
-        );
-    } else {
+    if (viewportTexture == 0) {
         ImGui::Text("Viewport unavailable.");
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::Button("Translate")) {
+        Gizmo::setMode(GizmoMode::Translate);
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Rotate")) {
+        Gizmo::setMode(GizmoMode::Rotate);
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Scale")) {
+        Gizmo::setMode(GizmoMode::Scale);
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::IsWindowFocused()) {
+        if (ImGui::IsKeyPressed(ImGuiKey_W))
+            Gizmo::setMode(GizmoMode::Translate);
+
+        if (ImGui::IsKeyPressed(ImGuiKey_E))
+            Gizmo::setMode(GizmoMode::Rotate);
+
+        if (ImGui::IsKeyPressed(ImGuiKey_R))
+            Gizmo::setMode(GizmoMode::Scale);
+    }
+
+    ImVec2 imagePos = ImGui::GetCursorScreenPos();
+    ImVec2 imageSize = ImGui::GetContentRegionAvail();
+
+    viewportSize = imageSize;
+
+    if (imageSize.x <= 0.0f || imageSize.y <= 0.0f) {
+        ImGui::Text("Viewport size invalid.");
+        ImGui::End();
+        return;
+    }
+
+    ImGui::Image(
+        (ImTextureID)(intptr_t)viewportTexture,
+        imageSize,
+        ImVec2(0, 1),
+        ImVec2(1, 0)
+    );
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        ImVec2 mouse = ImGui::GetMousePos();
+
+        float localX = mouse.x - imagePos.x;
+        float localY = mouse.y - imagePos.y;
+
+        EditorSelectionController::selectEntityFromViewport(
+            localX,
+            localY,
+            imageSize.x,
+            imageSize.y
+        );
+    }
+
+    if (ImGui::IsItemHovered()) {
+        float scroll = ImGui::GetIO().MouseWheel;
+        if (scroll != 0.0f) {
+            Scene* scene = SceneController::getScene();
+            if (scene) {
+                CameraComponent* cam = scene->getActiveCamera();
+                if (cam) {
+                    Entity* camEntity = cam->getEntity();
+                    TransformComponent& t = camEntity->getTransform();
+
+                    glm::vec3 rot = t.getRotation();
+                    glm::vec3 forward;
+                    forward.x = std::sin(rot.y) * std::cos(rot.x);
+                    forward.y = -std::sin(rot.x);
+                    forward.z = -std::cos(rot.y) * std::cos(rot.x);
+
+                    const float zoomSpeed = 0.5f;
+                    t.setPosition(t.getPosition() + forward * scroll * zoomSpeed);
+                }
+            }
+        }
     }
 
     ImGui::End();
