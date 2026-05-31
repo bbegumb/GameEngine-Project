@@ -16,6 +16,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <controller/EntityController.h>
 
 Renderer::Renderer() {
 	initShadowMap();
@@ -54,7 +55,7 @@ void Renderer::initShadowMap() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Renderer::render(const Scene& scene) const {
+void Renderer::render(const Scene& scene) {
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
@@ -121,6 +122,16 @@ void Renderer::render(const Scene& scene) const {
 
 		drawEntity(entity, meshComponent, materialComponent, activeCamera, dirLight, pointLight, lightSpaceMatrix);
 	}
+    glm::mat4 view = activeCamera->getViewMatrix();
+    glm::mat4 projection = activeCamera->getProjectionMatrix();
+
+    Entity* selected = EntityController::getSelectedEntity();
+
+    gizmo.draw(
+        selected,
+        activeCamera->getViewMatrix(),
+        activeCamera->getProjectionMatrix()
+    );
 }
 
 void Renderer::drawEntity(const Entity& entity,
@@ -207,5 +218,5 @@ void Renderer::drawEntityDepth(const Entity& entity,
 	glm::mat4 model = entity.getTransform().getMatrix();
 	depthShader->setMat4("uLightSpaceMatrix", lightSpaceMatrix);
 	depthShader->setMat4("uModel", model);
-	meshComponent->mesh->draw();
+    meshComponent->mesh->draw();
 }

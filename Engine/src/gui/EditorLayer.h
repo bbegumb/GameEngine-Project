@@ -5,7 +5,6 @@
 #include <functional>
 
 class Scene;
-class Entity;
 
 class EditorLayer {
 public:
@@ -13,7 +12,7 @@ public:
     void SetViewportTexture(unsigned int textureID);
 
     void OnUIRender();
-    ImVec2 GetViewportSize() const { return m_ViewportSize; }
+    ImVec2 GetViewportSize() const { return viewportSize; }
 
     void OnEntityRemoved(Entity* entity);
 
@@ -29,17 +28,16 @@ private:
     void ShowViewportPanel();
 
 private:
+    unsigned int viewportTexture = 0;
+    ImVec2 viewportSize = ImVec2(0.0f, 0.0f);
     Entity* GetValidSelectedEntity();
 
     Scene* m_Scene = nullptr;
     Entity* m_SelectedEntity = nullptr;
 
-    unsigned int m_ViewportTexture = 0;
-    ImVec2 m_ViewportSize = ImVec2(0.0f, 0.0f);
-
-    bool m_ShowStats = true;
-    bool m_ShowHierarchy = true;
-    bool m_ShowInspector = true;
-    bool m_ShowConsole = true;
-    bool m_ShowViewport = true;
+    bool showStats = true;
+    bool showHierarchy = true;
+    bool showInspector = true;
+    bool showConsole = true;
+    bool showViewport = true;
 };
