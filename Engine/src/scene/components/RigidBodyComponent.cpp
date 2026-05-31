@@ -125,4 +125,15 @@ void RigidBodyComponent::deserialize(const nlohmann::json& j) {
     }
 }
 
+void RigidBodyComponent::setType(RigidBodyType newType) {
+    if (newType == type) return;
+    type = newType;
+    rebuild();
+}
+
+void RigidBodyComponent::rebuild() {
+    body.reset();
+    onAttach();
+}
+
 REGISTER(RigidBodyComponent);

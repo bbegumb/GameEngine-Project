@@ -64,6 +64,7 @@ target_include_directories(Engine PUBLIC
     external/imgui
     external/imgui/backends
     external/nlohmann
+    external/stb
     include
     Engine/src
 )

@@ -4,6 +4,7 @@
 #include <persistance/ComponentFactory.h>
 #include <renderer/Material.h>
 #include <renderer/ShaderProgram.h>
+#include <renderer/Texture.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -19,6 +20,10 @@ void MaterialComponent::serialize(nlohmann::json& j) const {
     j["shininess"] = material->shininess;
     j["ambientReflectance"] = material->ambientReflectance;
     j["specularReflectance"] = material->specularReflectance;
+
+    if (material->diffuseTexture) {
+        j["texture"] = material->diffuseTexture.get()->getName();
+    }
 }
 
 void MaterialComponent::deserialize(const nlohmann::json& j) {
@@ -31,4 +36,8 @@ void MaterialComponent::deserialize(const nlohmann::json& j) {
     material->shininess = j.value("shininess", 32.0f);
     material->ambientReflectance = j.value("ambientReflectance", 0.5f);
     material->specularReflectance = j.value("specularReflectance", 0.5f);
+
+    if (j.contains("texture")) {
+        material->diffuseTexture = AssetManager::getTexture(j["texture"]);
+    }
 }

@@ -30,10 +30,13 @@ public:
 	PhysicsBody* getBody() { return body.get(); }
 	RigidBodyType getType() const { return type; }
 
+	void setType(RigidBodyType newType);
+
 private:
 	glm::vec3 lastScale = glm::vec3(1.0f);
 
 	void recookShape();
+	void rebuild();
 
 	bool forceConvex;
 	RigidBodyType type;
