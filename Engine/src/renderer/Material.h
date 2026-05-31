@@ -4,6 +4,7 @@
 #include <memory>
 
 class ShaderProgram;
+class Texture;
 
 class Material {
 public:
@@ -17,6 +18,7 @@ public:
 		specularReflectance(specularReflectance),
 		shininess(shininess) {}
 
+	std::shared_ptr<Texture> diffuseTexture = nullptr;
 	std::shared_ptr<ShaderProgram> shader;
 
 	glm::vec3 albedo = glm::vec3{ 0.7f, 0.7f, 0.7f };

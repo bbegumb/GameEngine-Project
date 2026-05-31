@@ -46,7 +46,7 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& objName, bool forceLoad
 
     std::string filePath = std::string(MODEL_PATH) + objName;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str())) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str(), std::string(MODEL_PATH).c_str())) {
         std::cerr << "OBJ load failed: " << err << std::endl;
         return nullptr;
     }

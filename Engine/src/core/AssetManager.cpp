@@ -5,9 +5,11 @@
 #include <renderer/ObjLoader.h>
 #include <renderer/PrimitiveFactory.h>
 #include <renderer/ShaderProgram.h>
+#include <renderer/Texture.h>
 
 std::unordered_map<std::string, std::shared_ptr<Mesh>> AssetManager::meshes;
 std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> AssetManager::shaders;
+std::unordered_map<std::string, std::shared_ptr<Texture>> AssetManager::textures;
 
 std::shared_ptr<Mesh> AssetManager::getMesh(const std::string& name) {
     auto it = meshes.find(name);
@@ -45,4 +47,15 @@ std::shared_ptr<ShaderProgram> AssetManager::getShader(const std::string& name) 
 void AssetManager::clear() {
     meshes.clear();
     shaders.clear();
+}
+
+std::shared_ptr<Texture> AssetManager::getTexture(const std::string& name) {
+    auto it = textures.find(name);
+    if (it != textures.end())
+        return it->second;
+
+    auto tex = std::make_shared<Texture>(std::string(MODEL_PATH) + name);
+    tex->setName(name);
+    textures[name] = tex;
+    return tex;
 }

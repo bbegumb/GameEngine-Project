@@ -11,6 +11,8 @@
 using json = nlohmann::json;
 
 void SceneSerializer::save(const Scene& scene, const std::string& filepath) {
+    if (scene.isPlaying) return;
+
     json j;
 
     if (scene.getActiveCamera())
@@ -29,6 +31,8 @@ void SceneSerializer::save(const Scene& scene, const std::string& filepath) {
 }
 
 void SceneSerializer::load(Scene& scene, const std::string& filepath) {
+    scene.isPlaying = false;
+
     std::ifstream file(SCENES_PATH + filepath);
     if (!file.is_open()) return;
 
