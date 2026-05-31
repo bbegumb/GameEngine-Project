@@ -5,6 +5,8 @@
 SCRIPT(BoxSpawner) {
 
 public:
+    int count = 0;
+
     void onUpdate(float dt) override;
 };
 

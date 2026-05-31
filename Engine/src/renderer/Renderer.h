@@ -24,12 +24,12 @@ private:
 	void initShadowMap();
 
 	void drawEntity(const Entity& entity,
-					const MeshComponent* meshComponent,
-					const MaterialComponent* materialComponent,
-					const CameraComponent* camera,
-					const DirectionalLightComponent* dirLight,
-					const PointLightComponent* pointLight,
-					const glm::mat4 lightSpaceMatrix) const;
+		const MeshComponent* meshComponent,
+		const MaterialComponent* materialComponent,
+		const CameraComponent* camera,
+		const DirectionalLightComponent* dirLight,
+		const PointLightComponent* pointLight,
+		const glm::mat4& lightSpaceMatrix) const;
 
 	void drawEntityDepth(const Entity& entity,
 						 const MeshComponent* meshComponent,

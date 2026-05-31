@@ -1,13 +1,23 @@
 #include "EditorLayer.h"
 
-#include "imgui.h"
+#include <imgui.h>
+#include <GLFW/glfw3.h>
 
 #include <scene/Scene.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
 #include <scene/components/BehaviourComponent.h>
+#include <scene/components/CameraComponent.h>
+#include <scene/components/DirectionalLightComponent.h>
+#include <scene/components/PointLightComponent.h>
+#include <scene/components/MaterialComponent.h>
+#include <scene/components/MeshComponent.h>
+#include <scene/components/RigidBodyComponent.h>
+#include <renderer/Material.h>
+#include <renderer/Mesh.h>
 
 void EditorLayer::SetScene(Scene* scene) {
+    m_SelectedEntity = nullptr;
     m_Scene = scene;
 }
 
@@ -71,10 +81,16 @@ void EditorLayer::ShowMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             ImGui::MenuItem("New Scene");
-            ImGui::MenuItem("Open Scene");
-            ImGui::MenuItem("Save Scene");
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
+                if (onSave) onSave();
+            }
+            if (ImGui::MenuItem("Load Scene", "Ctrl+O")) {
+                if (onLoad) onLoad();
+            }
             ImGui::Separator();
-            ImGui::MenuItem("Exit");
+            if (ImGui::MenuItem("Exit")) {
+                glfwSetWindowShouldClose(glfwGetCurrentContext(), true);
+            }
             ImGui::EndMenu();
         }
 
@@ -133,6 +149,8 @@ void EditorLayer::ShowHierarchyPanel() {
 void EditorLayer::ShowInspectorPanel() {
     ImGui::Begin("Inspector", &m_ShowInspector);
 
+    Entity* m_SelectedEntity = GetValidSelectedEntity();
+
     if (!m_SelectedEntity) {
         ImGui::Text("No entity selected.");
         ImGui::End();
@@ -162,6 +180,61 @@ void EditorLayer::ShowInspectorPanel() {
 
     if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
         transform.setScale({ scl[0], scl[1], scl[2] });
+    }
+
+    if (auto* cam = m_SelectedEntity->getComponent<CameraComponent>()) {
+        if (ImGui::CollapsingHeader("Camera")) {
+            ImGui::DragFloat("FOV", &cam->fov, 0.5f, 1.0f, 179.0f);
+            ImGui::DragFloat("Near", &cam->nearPlane, 0.01f, 0.001f, 10.0f);
+            ImGui::DragFloat("Far", &cam->farPlane, 1.0f, 1.0f, 10000.0f);
+        }
+    }
+
+    if (auto* dl = m_SelectedEntity->getComponent<DirectionalLightComponent>()) {
+        if (ImGui::CollapsingHeader("Directional Light")) {
+            ImGui::ColorEdit3("Color", &dl->color.x);
+            ImGui::DragFloat("Ambient", &dl->ambientStrength, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Diffuse", &dl->diffuseStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Specular", &dl->specularStrength, 0.01f, 0.0f, 5.0f);
+        }
+    }
+
+    if (auto* pl = m_SelectedEntity->getComponent<PointLightComponent>()) {
+        if (ImGui::CollapsingHeader("Point Light")) {
+            ImGui::ColorEdit3("Color", &pl->color.x);
+            ImGui::DragFloat("Ambient", &pl->ambientStrength, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Diffuse", &pl->diffuseStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Specular", &pl->specularStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Constant", &pl->constant, 0.01f, 0.0f, 10.0f);
+            ImGui::DragFloat("Linear", &pl->linear, 0.001f, 0.0f, 1.0f);
+            ImGui::DragFloat("Quadratic", &pl->quadratic, 0.001f, 0.0f, 1.0f);
+        }
+    }
+
+    if (auto* mc = m_SelectedEntity->getComponent<MaterialComponent>()) {
+        if (mc->getMaterial() && ImGui::CollapsingHeader("Material")) {
+            ImGui::ColorEdit3("Albedo", &mc->getMaterial()->albedo.x);
+            ImGui::DragFloat("Shininess", &mc->getMaterial()->shininess, 1.0f, 1.0f, 512.0f);
+            ImGui::DragFloat("Ambient Ref", &mc->getMaterial()->ambientReflectance, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Specular Ref", &mc->getMaterial()->specularReflectance, 0.01f, 0.0f, 1.0f);
+        }
+    }
+
+    if (auto* mesh = m_SelectedEntity->getComponent<MeshComponent>()) {
+        if (ImGui::CollapsingHeader("Mesh")) {
+            std::string name = mesh->mesh ? mesh->mesh->getName() : "None";
+            ImGui::Text("Mesh: %s", name.c_str());
+        }
+    }
+
+    if (auto* rb = m_SelectedEntity->getComponent<RigidBodyComponent>()) {
+        if (ImGui::CollapsingHeader("RigidBody")) {
+            const char* types[] = { "Static", "Dynamic", "Kinematic" };
+            int current = rb->getType();
+            if (ImGui::Combo("Type", &current, types, 3)) {
+                rb->setType(static_cast<RigidBodyType>(current));
+            }
+        }
     }
 
     for (auto& component : m_SelectedEntity->getComponents()) {
@@ -259,4 +332,17 @@ void EditorLayer::ShowViewportPanel() {
     }
 
     ImGui::End();
+}
+
+Entity* EditorLayer::GetValidSelectedEntity() {
+    if (!m_Scene || !m_SelectedEntity)
+        return nullptr;
+
+    for (const auto& entity : m_Scene->getEntities()) {
+        if (entity.get() == m_SelectedEntity)
+            return m_SelectedEntity;
+    }
+
+    m_SelectedEntity = nullptr;
+    return nullptr;
 }

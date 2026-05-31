@@ -5,7 +5,7 @@
 SCRIPT(Rotator) {
 
 public:
-    SERIALIZE(float, speed, 45.0f);
+    SERIALIZE(float, speed, 5.0f);
     SERIALIZE(glm::vec3, axis, glm::vec3(0, 1, 0));
     SERIALIZE(bool, enabled, true);
 

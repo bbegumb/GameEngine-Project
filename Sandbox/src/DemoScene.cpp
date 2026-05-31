@@ -17,6 +17,7 @@
 #include <renderer/ShaderProgram.h>
 #include <renderer/Material.h>
 #include <renderer/ObjLoader.h>
+#include <renderer/Texture.h>
 
 #include <glm/glm.hpp>
 
@@ -32,6 +33,7 @@ namespace DemoScene
         auto materialBlue = std::make_shared<Material>(shader, glm::vec3{ 0.0f, 0.0f, 1.0f });
         auto materialGray = std::make_shared<Material>(shader);
         auto materialBunny = std::make_shared<Material>(shader, glm::vec3{0.9f, 0.85f, 0.75f});
+        auto woodTex = AssetManager::getTexture("wood.jpg");
 
         materialGray->specularReflectance = 0.0f;
 
@@ -71,6 +73,7 @@ namespace DemoScene
         Entity& ground = scene.createEntity("Ground");
         auto& groundMesh = ground.addComponent<MeshComponent>(planeMesh);
         auto& groundMat = ground.addComponent<MaterialComponent>(materialGray);
+        groundMat.getMaterial()->diffuseTexture = woodTex;
 
         ground.transform.setPosition(glm::vec3(0.0f, -0.5f, 0.0f));
         ground.transform.setScale(glm::vec3(8.0f, 0.1f, 8.0f));
@@ -116,7 +119,7 @@ namespace DemoScene
         auto materialCar = std::make_shared<Material>(shader, glm::vec3{ 0.2f, 0.05f, 0.5f });
         auto materialGround = std::make_shared<Material>(shader, glm::vec3{ 0.3f, 0.3f, 0.3f });
 
-        auto carMesh = AssetManager::getMesh("bmw.obj");
+        auto carModel = AssetManager::getModel("bmw.obj");
         auto planeMesh = AssetManager::getMesh("plane");
 
         Entity& cameraEntity = scene.createEntity("Main Camera");
@@ -138,13 +141,15 @@ namespace DemoScene
         ground.addComponent<MeshComponent>(planeMesh);
         ground.addComponent<MaterialComponent>(materialGround);
         ground.transform.setScale(glm::vec3(15.0f, 1.0f, 15.0f));
+        ground.addComponent<RigidBodyComponent>(Kinematic);
 
         Entity& car = scene.createEntity("BMW");
-        car.addComponent<MeshComponent>(carMesh);
-        car.addComponent<MaterialComponent>(materialCar);
+        car.addComponent<MeshComponent>(carModel.mesh);
+        car.addComponent<MaterialComponent>(carModel.materials);
         car.transform.setPosition(glm::vec3(0.0f, 1.4f, 1.0f));
         car.transform.setScale(glm::vec3(0.015f, 0.015f, 0.015f));
         car.addComponent<Rotator>();
+        car.addComponent<RigidBodyComponent>();
     }
 
     void createScene3(Scene& scene)
@@ -154,6 +159,7 @@ namespace DemoScene
         auto materialBlue = std::make_shared<Material>(shader, glm::vec3{ 0.0f, 0.0f, 1.0f });
         auto materialGray = std::make_shared<Material>(shader);
         auto materialBunny = std::make_shared<Material>(shader, glm::vec3{ 0.9f, 0.85f, 0.75f });
+        auto woodTex = AssetManager::getTexture("wood.jpg");
 
         materialGray->specularReflectance = 0.0f;
 
@@ -193,6 +199,7 @@ namespace DemoScene
         Entity& ground = scene.createEntity("Ground");
         auto& groundMesh = ground.addComponent<MeshComponent>(planeMesh);
         auto& groundMat = ground.addComponent<MaterialComponent>(materialGray);
+        groundMat.getMaterial()->diffuseTexture = woodTex;
 
         ground.transform.setScale(glm::vec3(20.0f, 0.01f, 20.0f));
 

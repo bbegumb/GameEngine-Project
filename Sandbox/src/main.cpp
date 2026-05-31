@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <fstream>
 
 #include <persistance/SceneSerializer.h>
 #include <core/Input.h>
@@ -55,13 +56,39 @@ int main() {
 
     Scene scene;
     Renderer renderer;
-    DemoScene::createScene3(scene);
+    
+    std::string defaultScenePath = std::string(SCENES_PATH) + "scene.json";
+
+    std::ifstream sceneCheck(defaultScenePath);
+    if (sceneCheck.good()) {
+        sceneCheck.close();
+        SceneSerializer::load(scene, "scene.json");
+        printf("Loaded scene from %s\n", defaultScenePath.c_str());
+    }
+    else {
+        DemoScene::createScene2(scene);
+        printf("No saved scene found, created default\n");
+        scene.onUpdate(0.0f);
+        SceneSerializer::save(scene, "scene.json");
+    }
 
     ImGuiLayer imguiLayer;
     imguiLayer.Init(window);
 
     EditorLayer editorLayer;
     editorLayer.SetScene(&scene);
+
+    editorLayer.onSave = [&scene, &defaultScenePath]() {
+        SceneSerializer::save(scene, "scene.json");
+        printf("Scene saved!\n");
+    };
+
+    editorLayer.onLoad = [&scene, &editorLayer, &defaultScenePath]() {
+        scene.clear();
+        SceneSerializer::load(scene, "scene.json");
+        editorLayer.OnEntityRemoved(nullptr);
+        printf("Scene loaded!\n");
+    };
 
     ViewportFramebuffer viewportFramebuffer;
     viewportFramebuffer.Init(1000, 800);
@@ -83,14 +110,14 @@ int main() {
 
         glfwPollEvents();
 
-        if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::S)) {
-            SceneSerializer::save(scene, "scene1.json");
+        if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::S) && !scene.isPlaying) {
+            SceneSerializer::save(scene, "scene.json");
             printf("Scene saved!\n");
         }
 
         if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::O)) {
             scene.clear();
-            SceneSerializer::load(scene, "scene1.json");
+            SceneSerializer::load(scene, "scene.json");
             printf("Scene loaded!\n");
         }
         

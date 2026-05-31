@@ -8,6 +8,7 @@
 #include <renderer/Texture.h>
 
 std::unordered_map<std::string, std::shared_ptr<Mesh>> AssetManager::meshes;
+std::unordered_map<std::string, LoadedModel> AssetManager::models;
 std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> AssetManager::shaders;
 std::unordered_map<std::string, std::shared_ptr<Texture>> AssetManager::textures;
 
@@ -58,4 +59,17 @@ std::shared_ptr<Texture> AssetManager::getTexture(const std::string& name) {
     tex->setName(name);
     textures[name] = tex;
     return tex;
+}
+
+LoadedModel AssetManager::getModel(const std::string& name) {
+    auto it = models.find(name);
+    if (it != models.end())
+        return it->second;
+
+    auto model = ObjLoader::loadModel(name);
+    model.mesh->setName(name);
+    models[name] = model;
+    meshes[name] = model.mesh;
+
+    return model;
 }
