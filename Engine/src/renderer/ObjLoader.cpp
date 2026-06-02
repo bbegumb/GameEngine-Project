@@ -177,9 +177,7 @@ LoadedModel ObjLoader::loadModel(const std::string& objName) {
         mat->shininess = tmat.shininess;
 
         if (!tmat.diffuse_texname.empty()) {
-            mat->diffuseTexture = AssetManager::getTexture(
-                mtlDir + tmat.diffuse_texname
-            );
+            mat->diffuseTexture = AssetManager::getTexture(tmat.diffuse_texname);
         }
 
         materials.push_back(mat);

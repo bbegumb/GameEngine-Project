@@ -1,5 +1,7 @@
 #include "EntityController.h"
 
+#include <core/AssetManager.h>
+
 Entity* EntityController::selectedEntity = nullptr;
 
 void EntityController::setSelectedEntity(Entity* entity) {
@@ -59,11 +61,11 @@ void EntityController::addCamera(Entity* entity){
 void EntityController::addMesh(Entity* entity){
     if(!entity) return;
     if(!entity->hasComponent<MeshComponent>()){
-        entity->addComponent<MeshComponent>(PrimitiveFactory::createCube());
+        entity->addComponent<MeshComponent>(AssetManager::getMesh("cube"));
     }
 
     if(!entity->hasComponent<MaterialComponent>()){
-        auto shader = std::make_shared<ShaderProgram>("lit.vert", "lit.frag");
+        auto shader = AssetManager::getShader("lit");
         auto material = std::make_shared<Material>(shader, glm::vec3(0.7f, 0.7f, 0.7f));
         entity->addComponent<MaterialComponent>(material);
     }

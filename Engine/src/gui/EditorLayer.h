@@ -5,6 +5,7 @@
 #include <functional>
 
 class Scene;
+class Entity;
 
 class EditorLayer {
 public:
@@ -15,6 +16,8 @@ public:
     ImVec2 GetViewportSize() const { return viewportSize; }
 
     void OnEntityRemoved(Entity* entity);
+
+    Entity* GetValidSelectedEntity();
 
     std::function<void()> onSave;
     std::function<void()> onLoad;
@@ -30,10 +33,6 @@ private:
 private:
     unsigned int viewportTexture = 0;
     ImVec2 viewportSize = ImVec2(0.0f, 0.0f);
-    Entity* GetValidSelectedEntity();
-
-    Scene* m_Scene = nullptr;
-    Entity* m_SelectedEntity = nullptr;
 
     bool showStats = true;
     bool showHierarchy = true;
