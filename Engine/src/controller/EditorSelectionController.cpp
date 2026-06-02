@@ -45,7 +45,7 @@ Entity* EditorSelectionController::pickEntityWithRay(
     glm::mat4 view       = camera->getViewMatrix();
     glm::mat4 viewProj   = projection * view;
 
-    const float pixelRadius = 20.0f;
+    const float pixelRadius = 1000.0f;
 
     Entity* closestEntity = nullptr;
     float   closestDist   = std::numeric_limits<float>::max();
@@ -53,16 +53,17 @@ Entity* EditorSelectionController::pickEntityWithRay(
     for (Entity* entity : SceneController::getEntityPointers()) {
         if (!entity) continue;
 
-        TransformComponent* transform = entity->getComponent<TransformComponent>();
-        if (!transform) continue;
+        auto mc = entity->getComponent<MeshComponent>();
+        if (!mc) continue;
 
+        TransformComponent& transform = entity->transform;
         
         glm::vec3 localCenter(0.0f);
-        MeshComponent* mc = entity->getComponent<MeshComponent>();
+
         if (mc && mc->mesh)
             localCenter = mc->mesh->computeCentroid();
 
-        glm::mat4 model    = transform->getMatrix();
+        glm::mat4 model    = transform.getMatrix();
         glm::vec4 worldPos = model * glm::vec4(localCenter, 1.0f);
 
         glm::vec4 clip = viewProj * worldPos;

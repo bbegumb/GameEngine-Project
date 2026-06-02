@@ -111,6 +111,8 @@ namespace DemoScene
         bunny.transform.rotate(glm::vec3(0.0f, 0.0f, 0.0f));
 
         bunny.addComponent<RigidBodyComponent>();
+
+        cameraEntity.transform.setParent(&bunny.transform);
     }
 
     void createScene2(Scene& scene) {

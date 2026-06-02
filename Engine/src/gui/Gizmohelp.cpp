@@ -26,12 +26,9 @@ void Gizmo::draw(
     if (!selectedEntity)
         return;
 
-    auto* transform = selectedEntity->getComponent<TransformComponent>();
+    auto& transform = selectedEntity->transform;
 
-    if (!transform)
-        return;
-
-    glm::vec3 pos = transform->getPosition();
+    glm::vec3 pos = transform.getPosition();
     
     if (currentMode == GizmoMode::Translate) {
         drawTranslate(pos, view, projection);

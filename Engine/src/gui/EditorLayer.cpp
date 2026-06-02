@@ -5,13 +5,19 @@
 #include <controller/SceneController.h>
 #include <controller/EntityController.h>
 #include <controller/TransformController.h>
-#include <reflection/Reflection.h>
-#include <reflection/ReflectionDraw.h>
 #include <controller/EditorSelectionController.h>
 #include <scene/Scene.h>
 #include <scene/Entity.h>
-#include <scene/components/CameraComponent.h>
 #include <scene/components/TransformComponent.h>
+#include <scene/components/BehaviourComponent.h>
+#include <scene/components/CameraComponent.h>
+#include <scene/components/DirectionalLightComponent.h>
+#include <scene/components/PointLightComponent.h>
+#include <scene/components/MaterialComponent.h>
+#include <scene/components/MeshComponent.h>
+#include <scene/components/RigidBodyComponent.h>
+#include <renderer/Material.h>
+#include <renderer/Mesh.h>
 #include <glm/glm.hpp>
 #include <cmath>
 
@@ -137,50 +143,156 @@ void EditorLayer::ShowHierarchyPanel() {
 void EditorLayer::ShowInspectorPanel() {
     ImGui::Begin("Inspector", &showInspector);
 
-    Entity* entity = EntityController::getSelectedEntity();
-    
-    if (!entity) {
-            ImGui::Text("No entity selected.");
-            ImGui::End();
-            return;
+    Entity* selectedEntity = GetValidSelectedEntity();
+
+    if (!selectedEntity) {
+        ImGui::Text("No entity selected.");
+        ImGui::End();
+        return;
     }
 
-    ImGui::Text("Selected Entity: %s", entity->getName().c_str());
+    ImGui::Text("Selected Entity: %s", selectedEntity->getName().c_str());
     ImGui::Separator();
 
-    if(ImGui::Button("Add Component")){
-        ImGui::OpenPopup("AddComponentPopup");
-    }
-    
-    if (ImGui::BeginPopup("AddComponentPopup")) {
-        for (auto& [typeName, typeInfo] : ReflectionRegistry::getTypes()) {
-            if (typeName == "TransformComponent")
-                continue;
+    auto& transform = selectedEntity->transform;
 
-            if (ImGui::MenuItem(typeInfo.name.c_str())) {
-                if (typeInfo.addToEntity) {
-                    typeInfo.addToEntity(entity);
+    glm::vec3 position = transform.getPosition();
+    glm::vec3 rotation = transform.getRotation();
+    glm::vec3 scale = transform.getScale();
+
+    float pos[3] = { position.x, position.y, position.z };
+    float rot[3] = { rotation.x, rotation.y, rotation.z };
+    float scl[3] = { scale.x, scale.y, scale.z };
+
+    if (ImGui::DragFloat3("Position", pos, 0.1f)) {
+        transform.setPosition({ pos[0], pos[1], pos[2] });
+    }
+
+    if (ImGui::DragFloat3("Rotation", rot, 0.1f)) {
+        transform.setRotation({ rot[0], rot[1], rot[2] });
+    }
+
+    if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
+        transform.setScale({ scl[0], scl[1], scl[2] });
+    }
+
+    if (auto* cam = selectedEntity->getComponent<CameraComponent>()) {
+        if (ImGui::CollapsingHeader("Camera")) {
+            ImGui::DragFloat("FOV", &cam->fov, 0.5f, 1.0f, 179.0f);
+            ImGui::DragFloat("Near", &cam->nearPlane, 0.01f, 0.001f, 10.0f);
+            ImGui::DragFloat("Far", &cam->farPlane, 1.0f, 1.0f, 10000.0f);
+        }
+    }
+
+    if (auto* dl = selectedEntity->getComponent<DirectionalLightComponent>()) {
+        if (ImGui::CollapsingHeader("Directional Light")) {
+            ImGui::ColorEdit3("Color", &dl->color.x);
+            ImGui::DragFloat("Ambient", &dl->ambientStrength, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Diffuse", &dl->diffuseStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Specular", &dl->specularStrength, 0.01f, 0.0f, 5.0f);
+        }
+    }
+
+    if (auto* pl = selectedEntity->getComponent<PointLightComponent>()) {
+        if (ImGui::CollapsingHeader("Point Light")) {
+            ImGui::ColorEdit3("Color", &pl->color.x);
+            ImGui::DragFloat("Ambient", &pl->ambientStrength, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Diffuse", &pl->diffuseStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Specular", &pl->specularStrength, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("Constant", &pl->constant, 0.01f, 0.0f, 10.0f);
+            ImGui::DragFloat("Linear", &pl->linear, 0.001f, 0.0f, 1.0f);
+            ImGui::DragFloat("Quadratic", &pl->quadratic, 0.001f, 0.0f, 1.0f);
+        }
+    }
+
+    if (auto* mc = selectedEntity->getComponent<MaterialComponent>()) {
+        if (mc->getMaterial() && ImGui::CollapsingHeader("Material")) {
+            ImGui::ColorEdit3("Albedo", &mc->getMaterial()->albedo.x);
+            ImGui::DragFloat("Shininess", &mc->getMaterial()->shininess, 1.0f, 1.0f, 512.0f);
+            ImGui::DragFloat("Ambient Ref", &mc->getMaterial()->ambientReflectance, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Specular Ref", &mc->getMaterial()->specularReflectance, 0.01f, 0.0f, 1.0f);
+        }
+    }
+
+    if (auto* mesh = selectedEntity->getComponent<MeshComponent>()) {
+        if (ImGui::CollapsingHeader("Mesh")) {
+            std::string name = mesh->mesh ? mesh->mesh->getName() : "None";
+            ImGui::Text("Mesh: %s", name.c_str());
+        }
+    }
+
+    if (auto* rb = selectedEntity->getComponent<RigidBodyComponent>()) {
+        if (ImGui::CollapsingHeader("RigidBody")) {
+            const char* types[] = { "Static", "Dynamic", "Kinematic" };
+            int current = rb->getType();
+            if (ImGui::Combo("Type", &current, types, 3)) {
+                rb->setType(static_cast<RigidBodyType>(current));
+            }
+        }
+    }
+
+    for (auto& component : selectedEntity->getComponents()) {
+        auto* behaviour = dynamic_cast<BehaviourComponent*>(component.get());
+        if (!behaviour) continue;
+
+        ImGui::Separator();
+        std::string name = typeid(*behaviour).name();
+        if (name.find("class ") == 0)
+            name = name.substr(6);
+        if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            for (auto& prop : behaviour->getProperties()) {
+                switch (prop.type) {
+                case PropertyType::Float:
+                    ImGui::DragFloat(prop.name.c_str(), static_cast<float*>(prop.ptr), 0.1f);
+                    break;
+                case PropertyType::Double: {
+                    float temp = static_cast<float>(*static_cast<double*>(prop.ptr));
+                    if (ImGui::DragFloat(prop.name.c_str(), &temp, 0.1f))
+                        *static_cast<double*>(prop.ptr) = static_cast<double>(temp);
+                    break;
+                }
+                case PropertyType::Int:
+                    ImGui::DragInt(prop.name.c_str(), static_cast<int*>(prop.ptr));
+                    break;
+                case PropertyType::Bool:
+                    ImGui::Checkbox(prop.name.c_str(), static_cast<bool*>(prop.ptr));
+                    break;
+                case PropertyType::Vec2:
+                    ImGui::DragFloat2(prop.name.c_str(), &static_cast<glm::vec2*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Vec3:
+                    ImGui::DragFloat3(prop.name.c_str(), &static_cast<glm::vec3*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Vec4:
+                    ImGui::DragFloat4(prop.name.c_str(), &static_cast<glm::vec4*>(prop.ptr)->x, 0.1f);
+                    break;
+                case PropertyType::Mat3: {
+                    auto* m = static_cast<glm::mat3*>(prop.ptr);
+                    ImGui::Text("%s", prop.name.c_str());
+                    std::string id = "##" + prop.name;
+                    ImGui::DragFloat3((id + "0").c_str(), &(*m)[0][0], 0.1f);
+                    ImGui::DragFloat3((id + "1").c_str(), &(*m)[1][0], 0.1f);
+                    ImGui::DragFloat3((id + "2").c_str(), &(*m)[2][0], 0.1f);
+                    break;
+                }
+                case PropertyType::Mat4: {
+                    auto* m = static_cast<glm::mat4*>(prop.ptr);
+                    ImGui::Text("%s", prop.name.c_str());
+                    std::string id = "##" + prop.name;
+                    ImGui::DragFloat4((id + "0").c_str(), &(*m)[0][0], 0.1f);
+                    ImGui::DragFloat4((id + "1").c_str(), &(*m)[1][0], 0.1f);
+                    ImGui::DragFloat4((id + "2").c_str(), &(*m)[2][0], 0.1f);
+                    ImGui::DragFloat4((id + "3").c_str(), &(*m)[3][0], 0.1f);
+                    break;
+                }
+                default:
+                    break;
                 }
             }
         }
-
-        ImGui::EndPopup();
     }
 
-    ImGui::Separator();
-    
-    for (auto& componentPtr : entity->getComponents()) {
-        Component* component = componentPtr.get();
-
-        TypeInfo* type = ReflectionRegistry::getType(component);
-
-        if (type && ImGui::CollapsingHeader(type->name.c_str())) {
-            DrawReflectedFields(component, type);
-        }
-    }
-    
     ImGui::End();
-
 }
 
 void EditorLayer::ShowConsolePanel() {
@@ -291,4 +403,22 @@ void EditorLayer::ShowViewportPanel() {
     }
 
     ImGui::End();
+}
+
+void EditorLayer::OnEntityRemoved(Entity* entity) {
+    EntityController::setSelectedEntity(nullptr);
+}
+
+Entity* EditorLayer::GetValidSelectedEntity() {
+    Entity* selectedEntity = EntityController::getSelectedEntity();
+    Scene* scene = SceneController::getScene();
+    if (!scene || !selectedEntity)
+        return nullptr;
+
+    for (const auto& entity : scene->getEntities()) {
+        if (entity.get() == selectedEntity)
+            return selectedEntity;
+    }
+
+    return nullptr;
 }

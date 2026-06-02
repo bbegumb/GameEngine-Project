@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
-LineRenderer::LineRenderer(): shader("basic.vert", "basic.frag"){
+LineRenderer::LineRenderer(): shader("basic") {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
