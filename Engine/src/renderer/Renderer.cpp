@@ -114,24 +114,6 @@ void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4
 		//glDisable(GL_CULL_FACE);
 		glBindFramebuffer(GL_FRAMEBUFFER, previousFBO);
 	}
-	glm::mat4 view = activeCamera->getViewMatrix();
-	glm::mat4 projection = activeCamera->getProjectionMatrix();
-
-	auto& picker = EditorSelectionController::getInstance().getColourPicker();
-	picker.resize(viewport[2], viewport[3]);
-	picker.renderPickingPass(&const_cast<Scene&>(scene), view, projection,
-		[&](unsigned int pickShader, Entity* e, const glm::mat4& mvp) {
-		glUseProgram(pickShader);
-		glUniformMatrix4fv(
-			glGetUniformLocation(pickShader, "uMVP"),
-			1, GL_FALSE, glm::value_ptr(mvp));
-		glm::vec3 col = picker.getPickedColour(e);
-		glUniform3fv(
-			glGetUniformLocation(pickShader, "uColour"),
-			1, glm::value_ptr(col));
-		auto* mc = e->getComponent<MeshComponent>();
-		if (mc && mc->mesh) mc->mesh->draw();
-	});
 
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 

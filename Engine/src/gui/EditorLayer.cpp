@@ -398,6 +398,24 @@ void EditorLayer::ShowScenePanel() {
         // Selection
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver()) {
             ImVec2 mouse = ImGui::GetMousePos();
+
+            auto& picker = EditorSelectionController::getInstance().getColourPicker();
+            picker.resize((int)imageSize.x, (int)imageSize.y);
+            float aspect = imageSize.x / imageSize.y;
+            glm::mat4 view = editorCamera.getViewMatrix();
+            glm::mat4 proj = editorCamera.getProjectionMatrix(aspect);
+            Scene* scene = SceneController::getScene();
+
+            picker.renderPickingPass(scene, view, proj,
+                [&](unsigned int pickShader, Entity* e, const glm::mat4& mvp) {
+                    glUseProgram(pickShader);
+                    glUniformMatrix4fv(glGetUniformLocation(pickShader, "uMVP"), 1, GL_FALSE, glm::value_ptr(mvp));
+                    glm::vec3 col = picker.getPickedColour(e);
+                    glUniform3fv(glGetUniformLocation(pickShader, "uColour"), 1, glm::value_ptr(col));
+                    auto* mc = e->getComponent<MeshComponent>();
+                    if (mc && mc->mesh) mc->mesh->draw();
+                });
+
             EditorSelectionController::selectEntityFromViewport(
                 mouse.x - imagePos.x, mouse.y - imagePos.y,
                 imageSize.x, imageSize.y);

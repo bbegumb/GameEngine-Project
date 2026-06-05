@@ -123,7 +123,6 @@ void ColourPickingRenderer::renderPickingPass(
 
 	buildEntityMap(scene);
 
-	// Save the caller's FBO so we restore it exactly (not hardcode 0)
 	GLint previousFBO = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFBO);
 
@@ -154,7 +153,6 @@ void ColourPickingRenderer::renderPickingPass(
 void ColourPickingRenderer::beginPicking() {
 	if (!fbo) return;
 
-	// Save so endPicking() can restore
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &savedFBO);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
