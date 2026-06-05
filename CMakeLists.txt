@@ -42,6 +42,7 @@ set(IMGUI_SRC
     external/imgui/imgui_demo.cpp
     external/imgui/backends/imgui_impl_glfw.cpp
     external/imgui/backends/imgui_impl_opengl3.cpp
+    external/imguizmo/ImGuizmo.cpp
 )
 
 add_library(Engine
@@ -55,8 +56,9 @@ add_library(Engine
     ${RENDERER_SRC}
     ${IMGUI_SRC}
     Engine/src/glad.c
-    Engine/src/gui/ImGuiLayer.cpp
+    
     Engine/src/gui/EditorLayer.cpp
+    Engine/src/gui/ImGuiLayer.cpp
     Engine/src/gui/ViewportFramebuffer.cpp
     Engine/src/controller/SceneController.cpp
     Engine/src/controller/EntityController.cpp
@@ -65,6 +67,7 @@ add_library(Engine
     Engine/src/renderer/LineRenderer.cpp
     Engine/src/controller/EditorSelectionController.cpp
  "Engine/src/renderer/Colourpickingrenderer.cpp")
+ "Engine/src/gui/EditorCamera.cpp")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -72,6 +75,7 @@ target_include_directories(Engine PUBLIC
     external/glm
     external/imgui
     external/imgui/backends
+    external/imguizmo
     external/nlohmann
     external/stb
     include
@@ -106,6 +110,7 @@ add_executable(Sandbox
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
  "Engine/src/renderer/Colourpickingrenderer.cpp")
+ "Engine/src/gui/EditorCamera.cpp")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll
