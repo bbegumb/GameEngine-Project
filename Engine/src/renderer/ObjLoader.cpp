@@ -122,6 +122,14 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& objName, bool forceLoad
         v.position -= center;
     }
 
+    glm::vec3 size = maxBounds - minBounds;
+    float maxDimension = glm::max(size.x, glm::max(size.y, size.z));
+    if (maxDimension > 0.0f) {
+        float scale = 1.0f / maxDimension;
+        for (auto& v : vertices)
+            v.position *= scale;
+    }
+
     saveCache(objName, vertices, indices);
     return std::make_shared<Mesh>(vertices, indices);
 }
@@ -174,7 +182,8 @@ LoadedModel ObjLoader::loadModel(const std::string& objName) {
             )
         );
 
-        mat->shininess = tmat.shininess;
+        mat->shininess = tmat.shininess > 0.0f ? tmat.shininess : 32.0f;
+        mat->specularReflectance = (tmat.specular[0] + tmat.specular[1] + tmat.specular[2]) / 3.0f;
 
         if (!tmat.diffuse_texname.empty()) {
             mat->diffuseTexture = AssetManager::getTexture(tmat.diffuse_texname);
@@ -311,6 +320,14 @@ LoadedModel ObjLoader::loadModel(const std::string& objName) {
 
     for (auto& v : vertices) {
         v.position -= center;
+    }
+
+    glm::vec3 size = maxBounds - minBounds;
+    float maxDimension = glm::max(size.x, glm::max(size.y, size.z));
+    if (maxDimension > 0.0f) {
+        float scale = 1.0f / maxDimension;
+        for (auto& v : vertices)
+            v.position *= scale;
     }
 
     vertices.shrink_to_fit();

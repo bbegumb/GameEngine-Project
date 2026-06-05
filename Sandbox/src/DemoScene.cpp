@@ -13,16 +13,14 @@
 #include <scene/components/PointLightComponent.h>
 #include <scene/components/RigidBodyComponent.h>
 
-#include <renderer/Mesh.h>
-#include <renderer/ShaderProgram.h>
 #include <renderer/Material.h>
 #include <renderer/ObjLoader.h>
-#include <renderer/Texture.h>
 
 #include <glm/glm.hpp>
 
 #include "scripts/Rotator.h"
 #include "scripts/BoxSpawner.h"
+#include "scripts/DiscoLight.h"
 
 namespace DemoScene
 {
@@ -40,7 +38,7 @@ namespace DemoScene
         auto planeMesh = AssetManager::getMesh("plane");
         auto cubeMesh = AssetManager::getMesh("cube");
         auto sphereMesh = AssetManager::getMesh("sphere");
-        auto bunnyMesh = AssetManager::getMesh("bunny.obj");
+        auto bunnyMesh = AssetManager::getModel("maxwell.obj");
 
         Entity& cameraEntity = scene.createEntity("Main Camera");
         CameraComponent& camera = cameraEntity.addComponent<CameraComponent>(70.0f, 1000.0f / 800.0f, 0.1f, 100.0f);
@@ -61,6 +59,7 @@ namespace DemoScene
         Entity& lamp = scene.createEntity("Lamp");
         auto& pointLight = lamp.addComponent<PointLightComponent>();
         lamp.transform.setPosition(glm::vec3(2.0f, 2.0f, 2.0f));
+        lamp.addComponent<DiscoLight>();
 
         pointLight.color = glm::vec3(1.0f, 0.9f, 0.7f);
         pointLight.ambientStrength = 0.05f;
@@ -101,18 +100,17 @@ namespace DemoScene
         sphere1.transform.setPosition(glm::vec3(-1.5f, 0.5f, 0.0f));
         sphere1.addComponent<RigidBodyComponent>(Dynamic, nullptr, nullptr, true);
 
-        Entity& bunny = scene.createEntity("Bunny");
-        auto& bunnyMeshC = bunny.addComponent<MeshComponent>(bunnyMesh);
-        auto& bunnyMat = bunny.addComponent<MaterialComponent>(materialBunny);
-        bunny.addComponent<Rotator>();
-        bunny.transform.setScale(glm::vec3{ 15.0f, 15.0f, 15.0f });
+        Entity& dingus = scene.createEntity("Dingus");
+        auto& dingusMeshc = dingus.addComponent<MeshComponent>(bunnyMesh.mesh);
+        auto& dingusMatc = dingus.addComponent<MaterialComponent>(bunnyMesh.materials);
+        dingus.transform.setScale(glm::vec3(3.5f, 3.5f, 3.5f));
+        dingus.addComponent<Rotator>();
 
-        bunny.transform.setPosition(glm::vec3(0.0f, 1.15f, 2.0f));
-        bunny.transform.rotate(glm::vec3(0.0f, 0.0f, 0.0f));
+        dingus.transform.setPosition(glm::vec3(0.0f, 1.15f, 2.0f));
+        dingus.transform.rotate(glm::vec3(0.0f, 0.0f, 0.0f));
 
-        bunny.addComponent<RigidBodyComponent>();
+        dingus.addComponent<RigidBodyComponent>();
 
-        cameraEntity.transform.setParent(&bunny.transform);
     }
 
     void createScene2(Scene& scene) {
@@ -139,6 +137,10 @@ namespace DemoScene
         dirLight.diffuseStrength = 0.9f;
         dirLight.specularStrength = 0.6f;
 
+        Entity& lamp = scene.createEntity("Lamp");
+        auto& pointLight = lamp.addComponent<PointLightComponent>();
+        lamp.transform.setPosition(glm::vec3(2.0f, 2.0f, 2.0f));
+
         Entity& ground = scene.createEntity("Ground");
         ground.addComponent<MeshComponent>(planeMesh);
         ground.addComponent<MaterialComponent>(materialGround);
@@ -149,7 +151,6 @@ namespace DemoScene
         car.addComponent<MeshComponent>(carModel.mesh);
         car.addComponent<MaterialComponent>(carModel.materials);
         car.transform.setPosition(glm::vec3(0.0f, 1.4f, 1.0f));
-        car.transform.setScale(glm::vec3(0.015f, 0.015f, 0.015f));
         car.addComponent<Rotator>();
         car.addComponent<RigidBodyComponent>();
     }

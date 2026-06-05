@@ -1,6 +1,9 @@
 #include "EditorLayer.h"
 
 #include "imgui.h"
+
+#include "ImGuizmo.h"
+#include <core/Input.h>
 #include <gui/Gizmohelp.h>
 #include <controller/SceneController.h>
 #include <controller/EntityController.h>
@@ -16,17 +19,22 @@
 #include <scene/components/MaterialComponent.h>
 #include <scene/components/MeshComponent.h>
 #include <scene/components/RigidBodyComponent.h>
+#include <renderer/Texture.h>
 #include <renderer/Material.h>
 #include <renderer/Mesh.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <cmath>
 
-void EditorLayer::SetScene(Scene* scene) {
+void EditorLayer::SetScene(Scene* scene, std::function<void()> onSave,
+    std::function<void()> onLoad, std::function<void()> onExit,
+    std::function<void()> onPlay, std::function<void()> onStop) {
     SceneController::setScene(scene);
-}
-
-void EditorLayer::SetViewportTexture(unsigned int textureID) {
-     viewportTexture = textureID;
+    this->onSave = onSave;
+    this->onLoad = onLoad;
+    this->onExit = onExit;
+    this->onPlay = onPlay;
+    this->onStop = onStop;
 }
 
 void EditorLayer::OnUIRender() {
@@ -45,8 +53,11 @@ void EditorLayer::OnUIRender() {
     if (showConsole)
         ShowConsolePanel();
 
-    if (showViewport)
-        ShowViewportPanel();
+    if (showScene)
+        ShowScenePanel();
+
+    if (showGame)
+        ShowGamePanel();
 }
 
 void EditorLayer::ShowDockspace() {
@@ -79,11 +90,20 @@ void EditorLayer::ShowDockspace() {
 void EditorLayer::ShowMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            ImGui::MenuItem("New Scene");
-            ImGui::MenuItem("Open Scene");
-            ImGui::MenuItem("Save Scene");
+            if (ImGui::MenuItem("New Scene")) {
+                SceneController::getScene()->clear();
+                EntityController::setSelectedEntity(nullptr);
+            }
+            if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
+                if (onLoad) onLoad();
+            }
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
+                if (onSave) onSave();
+            }
             ImGui::Separator();
-            ImGui::MenuItem("Exit");
+            if (ImGui::MenuItem("Exit")) {
+                if (onExit) onExit();
+            }
             ImGui::EndMenu();
         }
 
@@ -92,8 +112,28 @@ void EditorLayer::ShowMenuBar() {
             ImGui::MenuItem("Hierarchy", nullptr, &showHierarchy);
             ImGui::MenuItem("Inspector", nullptr, &showInspector);
             ImGui::MenuItem("Console", nullptr, &showConsole);
-            ImGui::MenuItem("Viewport", nullptr, &showViewport);
+            ImGui::MenuItem("Scene", nullptr, &showScene);
+            ImGui::MenuItem("Game", nullptr, &showGame);
             ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        Scene* scene = SceneController::getScene();
+        if (scene) {
+            if (scene->isPlaying) {
+                if (ImGui::MenuItem("Stop", "F5")) {
+                    if (onStop) onStop();
+                }
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
+                ImGui::Text("PLAYING");
+                ImGui::PopStyleColor();
+            }
+            else {
+                if (ImGui::MenuItem("Play", "F5")) {
+                    if (onPlay) onPlay();
+                }
+            }
         }
 
         ImGui::EndMainMenuBar();
@@ -162,14 +202,21 @@ void EditorLayer::ShowInspectorPanel() {
 
     float pos[3] = { position.x, position.y, position.z };
     float rot[3] = { rotation.x, rotation.y, rotation.z };
+    float prev[3] = { rot[0], rot[1], rot[2] };
     float scl[3] = { scale.x, scale.y, scale.z };
 
     if (ImGui::DragFloat3("Position", pos, 0.1f)) {
         transform.setPosition({ pos[0], pos[1], pos[2] });
     }
 
-    if (ImGui::DragFloat3("Rotation", rot, 0.1f)) {
-        transform.setRotation({ rot[0], rot[1], rot[2] });
+    if (ImGui::DragFloat3("Rotation", rot, 0.01f)) {
+        float dx = rot[0] - prev[0];
+        float dy = rot[1] - prev[1];
+        float dz = rot[2] - prev[2];
+
+        if (dx != 0) transform.rotateAroundAxis(glm::vec3(1, 0, 0), dx);
+        if (dy != 0) transform.rotateAroundAxis(glm::vec3(0, 1, 0), dy);
+        if (dz != 0) transform.rotateAroundAxis(glm::vec3(0, 0, 1), dz);
     }
 
     if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
@@ -206,11 +253,21 @@ void EditorLayer::ShowInspectorPanel() {
     }
 
     if (auto* mc = selectedEntity->getComponent<MaterialComponent>()) {
-        if (mc->getMaterial() && ImGui::CollapsingHeader("Material")) {
-            ImGui::ColorEdit3("Albedo", &mc->getMaterial()->albedo.x);
-            ImGui::DragFloat("Shininess", &mc->getMaterial()->shininess, 1.0f, 1.0f, 512.0f);
-            ImGui::DragFloat("Ambient Ref", &mc->getMaterial()->ambientReflectance, 0.01f, 0.0f, 1.0f);
-            ImGui::DragFloat("Specular Ref", &mc->getMaterial()->specularReflectance, 0.01f, 0.0f, 1.0f);
+        if (ImGui::CollapsingHeader("Material")) {
+            int i = 0;
+            while (mc->getMaterial(i)) {
+                if (mc->getMaterial(i)) {
+                    auto texture = mc->getMaterial(i)->diffuseTexture;
+                    if (texture) ImGui::Text(texture->getName().c_str());
+
+                    std::string numLabel = std::to_string(i + 1);
+                    ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), & mc->getMaterial(i)->albedo.x);
+                    ImGui::DragFloat(("Shininess ##" + numLabel).c_str(), &mc->getMaterial(i)->shininess, 1.0f, 1.0f, 512.0f);
+                    ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->ambientReflectance, 0.01f, 0.0f, 1.0f);
+                    ImGui::DragFloat(("Specular Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->specularReflectance, 0.01f, 0.0f, 1.0f);
+                }
+                i++;
+            }
         }
     }
 
@@ -309,99 +366,90 @@ void EditorLayer::ShowConsolePanel() {
     ImGui::End();
 }
 
-void EditorLayer::ShowViewportPanel() {
-    ImGui::Begin("Viewport", &showViewport);
+void EditorLayer::ShowScenePanel() {
+    static bool gizmoLocal = true;
 
-    if (viewportTexture == 0) {
-        ImGui::Text("Viewport unavailable.");
-        ImGui::End();
-        return;
-    }
+    ImGui::Begin("Scene", &showScene);
 
-    if (ImGui::Button("Translate")) {
-        Gizmo::setMode(GizmoMode::Translate);
-    }
-
+    // Buttons first
+    if (ImGui::Button("Translate")) Gizmo::setMode(GizmoMode::Translate);
     ImGui::SameLine();
-
-    if (ImGui::Button("Rotate")) {
-        Gizmo::setMode(GizmoMode::Rotate);
-    }
-
+    if (ImGui::Button("Rotate")) Gizmo::setMode(GizmoMode::Rotate);
     ImGui::SameLine();
+    if (ImGui::Button("Scale")) Gizmo::setMode(GizmoMode::Scale);
+    ImGui::SameLine();
+    if (ImGui::Button(gizmoLocal ? "Local" : "World")) gizmoLocal = !gizmoLocal;
 
-    if (ImGui::Button("Scale")) {
-        Gizmo::setMode(GizmoMode::Scale);
+    if (ImGui::IsWindowFocused() && !Input::isMouseDown(MouseButton::Right)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_W)) Gizmo::setMode(GizmoMode::Translate);
+        if (ImGui::IsKeyPressed(ImGuiKey_E)) Gizmo::setMode(GizmoMode::Rotate);
+        if (ImGui::IsKeyPressed(ImGuiKey_R)) Gizmo::setMode(GizmoMode::Scale);
     }
 
-    ImGui::Separator();
-
-    if (ImGui::IsWindowFocused()) {
-        if (ImGui::IsKeyPressed(ImGuiKey_W))
-            Gizmo::setMode(GizmoMode::Translate);
-
-        if (ImGui::IsKeyPressed(ImGuiKey_E))
-            Gizmo::setMode(GizmoMode::Rotate);
-
-        if (ImGui::IsKeyPressed(ImGuiKey_R))
-            Gizmo::setMode(GizmoMode::Scale);
-    }
-
+    // Image ONCE, after buttons
     ImVec2 imagePos = ImGui::GetCursorScreenPos();
     ImVec2 imageSize = ImGui::GetContentRegionAvail();
+    sceneViewSize = imageSize;
 
-    viewportSize = imageSize;
+    if (sceneViewTexture && imageSize.x > 0 && imageSize.y > 0) {
+        ImGui::Image((ImTextureID)(intptr_t)sceneViewTexture, imageSize,
+            ImVec2(0, 1), ImVec2(1, 0));
 
-    if (imageSize.x <= 0.0f || imageSize.y <= 0.0f) {
-        ImGui::Text("Viewport size invalid.");
-        ImGui::End();
-        return;
-    }
+        // Selection
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver()) {
+            ImVec2 mouse = ImGui::GetMousePos();
+            EditorSelectionController::selectEntityFromViewport(
+                mouse.x - imagePos.x, mouse.y - imagePos.y,
+                imageSize.x, imageSize.y);
+        }
 
-    ImGui::Image(
-        (ImTextureID)(intptr_t)viewportTexture,
-        imageSize,
-        ImVec2(0, 1),
-        ImVec2(1, 0)
-    );
+        // ImGuizmo — use editor camera, not scene camera
+        Entity* selected = EntityController::getSelectedEntity();
+        if (selected) {
+            glm::mat4 view = editorCamera.getViewMatrix();
+            float aspect = imageSize.x / imageSize.y;
+            glm::mat4 proj = editorCamera.getProjectionMatrix(aspect);
+            glm::mat4 model = selected->transform.getMatrix();
 
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        ImVec2 mouse = ImGui::GetMousePos();
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(imagePos.x, imagePos.y, imageSize.x, imageSize.y);
 
-        float localX = mouse.x - imagePos.x;
-        float localY = mouse.y - imagePos.y;
+            ImGuizmo::OPERATION op;
+            switch (Gizmo::getMode()) {
+            case GizmoMode::Translate: op = ImGuizmo::TRANSLATE; break;
+            case GizmoMode::Rotate:    op = ImGuizmo::ROTATE; break;
+            case GizmoMode::Scale:     op = ImGuizmo::SCALE; break;
+            default:                   op = ImGuizmo::TRANSLATE; break;
+            }
 
-        EditorSelectionController::selectEntityFromViewport(
-            localX,
-            localY,
-            imageSize.x,
-            imageSize.y
-        );
-    }
+            if (ImGuizmo::Manipulate(
+                glm::value_ptr(view), glm::value_ptr(proj),
+                op, gizmoLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD,
+                glm::value_ptr(model))) {
 
-    if (ImGui::IsItemHovered()) {
-        float scroll = ImGui::GetIO().MouseWheel;
-        if (scroll != 0.0f) {
-            Scene* scene = SceneController::getScene();
-            if (scene) {
-                CameraComponent* cam = scene->getActiveCamera();
-                if (cam) {
-                    Entity* camEntity = cam->getEntity();
-                    TransformComponent& t = camEntity->getTransform();
+                glm::vec3 pos, rot, scl;
+                ImGuizmo::DecomposeMatrixToComponents(
+                    glm::value_ptr(model),
+                    glm::value_ptr(pos), glm::value_ptr(rot), glm::value_ptr(scl));
 
-                    glm::vec3 rot = t.getRotation();
-                    glm::vec3 forward;
-                    forward.x = std::sin(rot.y) * std::cos(rot.x);
-                    forward.y = -std::sin(rot.x);
-                    forward.z = -std::cos(rot.y) * std::cos(rot.x);
-
-                    const float zoomSpeed = 0.5f;
-                    t.setPosition(t.getPosition() + forward * scroll * zoomSpeed);
-                }
+                selected->transform.setPosition(pos);
+                selected->transform.setRotation(glm::radians(rot));
+                selected->transform.setScale(scl);
             }
         }
     }
 
+    ImGui::End();
+}
+
+void EditorLayer::ShowGamePanel() {
+    ImGui::Begin("Game", &showGame);
+    gameViewSize = ImGui::GetContentRegionAvail();
+    if (gameViewTexture && gameViewSize.x > 0 && gameViewSize.y > 0) {
+        ImGui::Image((ImTextureID)(intptr_t)gameViewTexture, gameViewSize,
+            ImVec2(0, 1), ImVec2(1, 0));
+    }
     ImGui::End();
 }
 

@@ -112,10 +112,17 @@ vec3 calculatePointLight(PointLight light, Material mat, vec3 normal, vec3 fragP
 
 void main()
 {
+    vec4 texColor = vec4(1.0);
+    if (uHasTexture) {
+        texColor = texture(uDiffuseTexture, vTexCoord);
+        if (texColor.a < 0.1)
+            discard;
+    }
+
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uViewPos - vFragPos);
 
-    vec3 albedo = uHasTexture ? texture(uDiffuseTexture, vTexCoord).rgb * uMaterial.albedo : uMaterial.albedo;
+    vec3 albedo = uHasTexture ? texColor.rgb * uMaterial.albedo : uMaterial.albedo;
     vec3 lighting = vec3(0.0);
 
     if (uHasDirectionalLight)
