@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imgui.h>
-
+#include <gui/Gizmohelp.h>
 #include <functional>
 
 class Scene;
@@ -18,6 +18,7 @@ public:
     void OnEntityRemoved(Entity* entity);
 
     Entity* GetValidSelectedEntity();
+    void OnUpdate(const glm::mat4& view, const glm::mat4& projection);
 
     std::function<void()> onSave;
     std::function<void()> onLoad;
@@ -30,13 +31,20 @@ private:
     void ShowConsolePanel();
     void ShowViewportPanel();
 
-private:
     unsigned int viewportTexture = 0;
     ImVec2 viewportSize = ImVec2(0.0f, 0.0f);
+    ImVec2 viewportPos = ImVec2(0.0f, 0.0f);
 
     bool showStats = true;
     bool showHierarchy = true;
     bool showInspector = true;
     bool showConsole = true;
     bool showViewport = true;
+    Gizmo gizmo;
+
+    glm::mat4 cachedView = glm::mat4(1.0f);
+    glm::mat4 cachedProjection = glm::mat4(1.0f);
+
+    bool gizmoConsumedClick = false;
+
 };

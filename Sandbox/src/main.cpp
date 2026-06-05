@@ -155,6 +155,9 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         imguiLayer.Begin();
+        if (scene.getActiveCamera()) {
+            editorLayer.OnUpdate(scene.getActiveCamera()->getViewMatrix(), scene.getActiveCamera()->getProjectionMatrix());
+        }
         editorLayer.OnUIRender();
         imguiLayer.End();
 

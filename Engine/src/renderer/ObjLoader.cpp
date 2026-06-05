@@ -5,6 +5,7 @@
 
 #pragma warning(pop)
 
+#include <filesystem>
 #include <renderer/Vertex.h>
 #include <iostream>
 #include <fstream>
@@ -44,9 +45,10 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& objName, bool forceLoad
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    std::string filePath = std::string(MODEL_PATH) + objName;
+    std::filesystem::path modelDir = std::filesystem::current_path() / "assets" / "models" / objName;
+    std::filesystem::path mtlDir = std::filesystem::current_path() / "assets" / "models";
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str(), std::string(MODEL_PATH).c_str())) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelDir.u8string().c_str(), mtlDir.u8string().c_str())) {
         std::cerr << "OBJ load failed: " << err << std::endl;
         return nullptr;
     }
@@ -127,14 +129,9 @@ std::shared_ptr<Mesh> ObjLoader::load(const std::string& objName, bool forceLoad
 }
 
 LoadedModel ObjLoader::loadModel(const std::string& objName) {
-    std::string filePath = std::string(MODEL_PATH) + objName;
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "models" / objName;
+    std::filesystem::path mtlDir = filePath.parent_path();
 
-    std::string mtlDir;
-    size_t slash = filePath.find_last_of("/\\");
-    if (slash != std::string::npos)
-        mtlDir = filePath.substr(0, slash + 1);
-    else
-        mtlDir = std::string(MODEL_PATH);
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -147,8 +144,8 @@ LoadedModel ObjLoader::loadModel(const std::string& objName) {
         &tinyMaterials,
         &warn,
         &err,
-        filePath.c_str(),
-        mtlDir.c_str()
+        filePath.u8string().c_str(),
+        mtlDir.u8string().c_str()
     );
 
     if (!warn.empty())
@@ -331,9 +328,11 @@ void ObjLoader::saveCache(const std::string& objName,
     const std::vector<Vertex>& vertices,
     const std::vector<unsigned int>& indices) {
 
-    std::filesystem::create_directories("C:/Users/bedir/git/GameEngine-Project/assets/models/OBJCache/");
-    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".mesh.cache";
+    std::filesystem::path cacheDir = std::filesystem::current_path() / "assets" / "models" / "OBJCache";
 
+    std::filesystem::create_directories(cacheDir);
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "models" / "OBJCache" / (objName + ".mesh.cache");
+    
     std::ofstream file(filePath, std::ios::binary);
 
     size_t vertCount = vertices.size();
@@ -350,9 +349,9 @@ bool ObjLoader::loadCache(const std::string& objName,
     std::vector<Vertex>& vertices,
     std::vector<unsigned int>& indices) {
 
-    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".mesh.cache";
-
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "models" / "OBJCache" / (objName + ".mesh.cache");
     std::ifstream file(filePath, std::ios::binary);
+
     if (!file.is_open()) return false;
 
     vertices.clear();
@@ -376,9 +375,10 @@ void ObjLoader::saveModelCache(const std::string& objName,
                           const std::vector<unsigned int>& indices,
                           const std::vector<SubMesh>& submeshes) {
 
-    std::filesystem::create_directories("C:/Users/bedir/git/GameEngine-Project/assets/models/OBJCache/");
-    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".model.cache";
+    std::filesystem::path cacheDir = std::filesystem::current_path() / "assets" / "models" / "OBJCache";
 
+    std::filesystem::create_directories(cacheDir);
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "models" / "OBJCache" / (objName + ".mesh.cache");
     std::ofstream file(filePath, std::ios::binary);
 
     size_t vertCount = vertices.size();
@@ -398,9 +398,9 @@ bool ObjLoader::loadModelCache(const std::string& objName,
                           std::vector<unsigned int>& indices,
                           std::vector<SubMesh>& submeshes) {
 
-    std::string filePath = std::string(MODEL_PATH) + "OBJCache/" + objName + ".model.cache";
-
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "models" / "OBJCache" / (objName + ".model.cache");
     std::ifstream file(filePath, std::ios::binary);
+
     if (!file.is_open()) return false;
 
     vertices.clear();

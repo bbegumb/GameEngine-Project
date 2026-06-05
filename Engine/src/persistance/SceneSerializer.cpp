@@ -26,14 +26,18 @@ void SceneSerializer::save(const Scene& scene, const std::string& filepath) {
         j["scene"]["entities"].push_back(ej);
     }
 
-    std::ofstream file(SCENES_PATH + filepath);
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "scenes" / filepath;
+
+    std::ofstream file(filePath);
     file << j.dump(4);
 }
 
 void SceneSerializer::load(Scene& scene, const std::string& filepath) {
     scene.isPlaying = false;
 
-    std::ifstream file(SCENES_PATH + filepath);
+    std::filesystem::path filePath = std::filesystem::current_path() / "assets" / "scenes" / filepath;
+
+    std::ifstream file(filePath);
     if (!file.is_open()) return;
 
     json j = json::parse(file);
