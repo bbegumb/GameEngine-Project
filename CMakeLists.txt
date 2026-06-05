@@ -63,11 +63,9 @@ add_library(Engine
     Engine/src/controller/SceneController.cpp
     Engine/src/controller/EntityController.cpp
     Engine/src/controller/TransformController.cpp
-    Engine/src/gui/Gizmohelp.cpp
-    Engine/src/renderer/LineRenderer.cpp
     Engine/src/controller/EditorSelectionController.cpp
- "Engine/src/renderer/Colourpickingrenderer.cpp")
- "Engine/src/gui/EditorCamera.cpp")
+    Engine/src/renderer/Colourpickingrenderer.cpp
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -109,8 +107,8 @@ add_executable(Sandbox
     ${SCRIPTS_SRC}
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
- "Engine/src/renderer/Colourpickingrenderer.cpp")
- "Engine/src/gui/EditorCamera.cpp")
+    Engine/src/renderer/Colourpickingrenderer.cpp
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll
