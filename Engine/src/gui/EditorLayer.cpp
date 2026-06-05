@@ -29,6 +29,11 @@ void EditorLayer::SetViewportTexture(unsigned int textureID) {
      viewportTexture = textureID;
 }
 
+void EditorLayer::OnUpdate(const glm::mat4& view, const glm::mat4& projection) {
+    cachedView = view;
+    cachedProjection = projection;
+}
+
 void EditorLayer::OnUIRender() {
     ShowDockspace();
     ShowMenuBar();
@@ -364,19 +369,23 @@ void EditorLayer::ShowViewportPanel() {
         ImVec2(0, 1),
         ImVec2(1, 0)
     );
+    Entity* selected = GetValidSelectedEntity();
+    gizmoConsumedClick = false;
+    if (selected) {
+        gizmoConsumedClick = gizmo.handleInput(
+            selected,
+            cachedView, cachedProjection,
+            imagePos.x, imagePos.y,
+            imageSize.x, imageSize.y
+        );
+    }
 
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    if (!gizmoConsumedClick && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         ImVec2 mouse = ImGui::GetMousePos();
-
         float localX = mouse.x - imagePos.x;
         float localY = mouse.y - imagePos.y;
-
         EditorSelectionController::selectEntityFromViewport(
-            localX,
-            localY,
-            imageSize.x,
-            imageSize.y
-        );
+            localX, localY, imageSize.x, imageSize.y);
     }
 
     if (ImGui::IsItemHovered()) {

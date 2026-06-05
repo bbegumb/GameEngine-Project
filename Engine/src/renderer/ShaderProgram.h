@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <string>
+#include <filesystem>
 
 class ShaderProgram {
 public:
@@ -25,6 +26,6 @@ private:
 	unsigned int programID = 0;
 
 	std::string name;
-	std::string readFile(const std::string& path);
+	std::string readFile(const std::filesystem::path& path);
 	unsigned int compileShader(unsigned int type, const std::string& source);
 };
