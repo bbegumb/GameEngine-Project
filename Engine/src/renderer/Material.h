@@ -11,7 +11,7 @@ public:
 	Material(std::shared_ptr<ShaderProgram> shader = nullptr,
 		glm::vec3 albedo = glm::vec3{ 0.7f, 0.7f, 0.7f },
 		float ambientReflectance = 1.0f,
-		float specularReflectance = 1.0f,
+		float specularReflectance = 0.2,
 		float shininess = 32.0f) :
 		shader(shader), albedo(albedo),
 		ambientReflectance(ambientReflectance),
@@ -24,7 +24,7 @@ public:
 	glm::vec3 albedo = glm::vec3{ 0.7f, 0.7f, 0.7f };
 
 	float ambientReflectance = 1.0f;
-	float specularReflectance = 1.0f;
+	float specularReflectance = 0.2f;
 	float shininess = 32.0f;
 
 	void apply() const;

@@ -58,6 +58,12 @@ void Renderer::initShadowMap() {
 }
 
 void Renderer::render(const Scene& scene) {
+	CameraComponent* cam = scene.getActiveCamera();
+	if (!cam) return;
+	render(scene, cam->getViewMatrix(), cam->getProjectionMatrix());
+}
+
+void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4& proj) {
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
@@ -140,22 +146,16 @@ void Renderer::render(const Scene& scene) {
 		const MaterialComponent* materialComponent = entity.getComponent<MaterialComponent>();
 		if (!meshComponent || !materialComponent) continue;
 
-		drawEntity(entity, meshComponent, materialComponent, activeCamera, dirLight, pointLight, lightSpaceMatrix);
+		drawEntity(entity, meshComponent, materialComponent, view, proj, glm::vec3(glm::inverse(view)[3]), dirLight, pointLight, lightSpaceMatrix);
 	}
-
-    Entity* selected = EntityController::getSelectedEntity();
-
-    gizmo.draw(
-        selected,
-        activeCamera->getViewMatrix(),
-        activeCamera->getProjectionMatrix()
-    );
 }
 
 void Renderer::drawEntity(const Entity& entity,
 	const MeshComponent* meshComponent,
 	const MaterialComponent* materialComponent,
-	const CameraComponent* camera,
+	const glm::mat4& view,
+	const glm::mat4& proj,
+	const glm::vec3& cameraPosition,
 	const DirectionalLightComponent* dirLight,
 	const PointLightComponent* pointLight,
 	const glm::mat4& lightSpaceMatrix) const {
@@ -163,14 +163,11 @@ void Renderer::drawEntity(const Entity& entity,
 	if (!meshComponent->mesh) return;
 
 	const glm::mat4 model = entity.getTransform().getMatrix();
-	const glm::mat4 view = camera->getViewMatrix();
-	const glm::mat4 proj = camera->getProjectionMatrix();
-	glm::vec3 cameraPosition = glm::vec3(glm::inverse(view)[3]);
 
 	auto drawWithMaterial = [&](Material& material) {
 		ShaderProgram& shader = *material.shader;
-		material.apply();
 		shader.use();
+		material.apply();
 
 		shader.setMat4("uModel", model);
 		shader.setMat4("uView", view);
@@ -209,7 +206,7 @@ void Renderer::drawEntity(const Entity& entity,
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
 		shader.setInt("uShadowMap", 4);
-		};
+	};
 
 	const auto& submeshes = meshComponent->mesh->getSubMeshes();
 

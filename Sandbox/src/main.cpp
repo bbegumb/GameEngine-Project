@@ -4,11 +4,15 @@
 #include <iostream>
 #include <fstream>
 
+#include <imgui.h>
+#include <ImGuizmo.h>
+
+#include <controller/EntityController.h>
 #include <persistance/SceneSerializer.h>
 #include <core/Input.h>
 #include <renderer/Renderer.h>
-#include <scene/scene_all.h>
-#include <DemoScene.h>
+
+#include "DemoScene.h"
 
 #include "gui/ImGuiLayer.h"
 #include "gui/EditorLayer.h"
@@ -76,24 +80,37 @@ int main() {
     imguiLayer.Init(window);
 
     EditorLayer editorLayer;
-    editorLayer.SetScene(&scene);
-
-    editorLayer.onSave = [&scene, &defaultScenePath]() {
+    auto onSave = [&scene, &defaultScenePath]() {
         SceneSerializer::save(scene, "scene.json");
         printf("Scene saved!\n");
     };
-
-    editorLayer.onLoad = [&scene, &editorLayer, &defaultScenePath]() {
+    auto onLoad = [&scene, &editorLayer, &defaultScenePath]() {
         scene.clear();
         SceneSerializer::load(scene, "scene.json");
         editorLayer.OnEntityRemoved(nullptr);
         printf("Scene loaded!\n");
     };
+    auto onExit = []() {
+        glfwSetWindowShouldClose(glfwGetCurrentContext(), true);
+    };
+    auto onPlay = [&scene]() {
+        SceneSerializer::save(scene, "_temp.json");
+        scene.isPlaying = true;
+        };
+    auto onStop = [&scene]() {
+        scene.isPlaying = false;
+        scene.clear();
+        EntityController::setSelectedEntity(nullptr);
+        SceneSerializer::load(scene, "_temp.json");    
+    };
 
-    ViewportFramebuffer viewportFramebuffer;
-    viewportFramebuffer.Init(1000, 800);
+    editorLayer.SetScene(&scene, onSave, onLoad, onExit, onPlay, onStop);
 
-    editorLayer.SetViewportTexture(viewportFramebuffer.GetColorAttachment());
+    ViewportFramebuffer gameFramebuffer;
+    gameFramebuffer.Init(1000, 800);
+
+    ViewportFramebuffer sceneFramebuffer;
+    sceneFramebuffer.Init(1000, 800);
 
     scene.onEntityRemoved = [&editorLayer](Entity* entity) {
         editorLayer.OnEntityRemoved(entity);
@@ -111,6 +128,8 @@ int main() {
         last = now;
 
         glfwPollEvents();
+        
+        Input::update();
 
         if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::S) && !scene.isPlaying) {
             SceneSerializer::save(scene, "scene.json");
@@ -122,27 +141,38 @@ int main() {
             SceneSerializer::load(scene, "scene.json");
             printf("Scene loaded!\n");
         }
-        
-        Input::update();
+
+        editorLayer.editorCamera.update(dt);
         scene.onUpdate(dt);
 
-        ImVec2 viewportSize = editorLayer.GetViewportSize();
-        unsigned int vpWidth = static_cast<unsigned int>(viewportSize.x);
-        unsigned int vpHeight = static_cast<unsigned int>(viewportSize.y);
+        // Scene view — editor camera
+        ImVec2 sceneSize = editorLayer.getSceneViewSize();
+        unsigned int sw = static_cast<unsigned int>(sceneSize.x);
+        unsigned int sh = static_cast<unsigned int>(sceneSize.y);
 
-        if (vpWidth > 0 && vpHeight > 0) {
-            viewportFramebuffer.Resize(vpWidth, vpHeight);
+        if (sw > 0 && sh > 0) {
+            sceneFramebuffer.Resize(sw, sh);
+            float aspect = static_cast<float>(sw) / static_cast<float>(sh);
+            sceneFramebuffer.Bind();
+            renderer.render(scene,
+                editorLayer.editorCamera.getViewMatrix(),
+                editorLayer.editorCamera.getProjectionMatrix(aspect));
+            sceneFramebuffer.Unbind();
+            editorLayer.sceneViewTexture = sceneFramebuffer.GetColorAttachment();
+        }
 
-            if (scene.getActiveCamera()) {
-                scene.getActiveCamera()->aspect =
-                    static_cast<float>(vpWidth) / static_cast<float>(vpHeight);
-            }
+        // Game view — scene camera
+        ImVec2 gameSize = editorLayer.getGameViewSize();
+        unsigned int gw = static_cast<unsigned int>(gameSize.x);
+        unsigned int gh = static_cast<unsigned int>(gameSize.y);
 
-            viewportFramebuffer.Bind();
+        if (gw > 0 && gh > 0 && scene.getActiveCamera()) {
+            gameFramebuffer.Resize(gw, gh);
+            scene.getActiveCamera()->aspect = static_cast<float>(gw) / static_cast<float>(gh);
+            gameFramebuffer.Bind();
             renderer.render(scene);
-            viewportFramebuffer.Unbind();
-
-            editorLayer.SetViewportTexture(viewportFramebuffer.GetColorAttachment());
+            gameFramebuffer.Unbind();
+            editorLayer.gameViewTexture = gameFramebuffer.GetColorAttachment();
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -155,9 +185,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         imguiLayer.Begin();
-        if (scene.getActiveCamera()) {
-            editorLayer.OnUpdate(scene.getActiveCamera()->getViewMatrix(), scene.getActiveCamera()->getProjectionMatrix());
-        }
+        ImGuizmo::BeginFrame();
         editorLayer.OnUIRender();
         imguiLayer.End();
 
