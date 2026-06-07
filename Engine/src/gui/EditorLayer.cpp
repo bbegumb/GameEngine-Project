@@ -91,8 +91,8 @@ void EditorLayer::ShowMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New Scene")) {
-                SceneController::getScene()->clear();
                 EntityController::setSelectedEntity(nullptr);
+                SceneController::newScene();
             }
             if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
                 if (onLoad) onLoad();
@@ -183,6 +183,8 @@ void EditorLayer::ShowHierarchyPanel() {
 void EditorLayer::ShowInspectorPanel() {
     ImGui::Begin("Inspector", &showInspector);
 
+    inspectorFocused = ImGui::IsWindowFocused();
+
     Entity* selectedEntity = GetValidSelectedEntity();
 
     if (!selectedEntity) {
@@ -197,7 +199,7 @@ void EditorLayer::ShowInspectorPanel() {
     auto& transform = selectedEntity->transform;
 
     glm::vec3 position = transform.getPosition();
-    glm::vec3 rotation = transform.getRotation();
+    glm::vec3 rotation = transform.getEulerRotation();
     glm::vec3 scale = transform.getScale();
 
     float pos[3] = { position.x, position.y, position.z };
@@ -209,14 +211,8 @@ void EditorLayer::ShowInspectorPanel() {
         transform.setPosition({ pos[0], pos[1], pos[2] });
     }
 
-    if (ImGui::DragFloat3("Rotation", rot, 0.01f)) {
-        float dx = rot[0] - prev[0];
-        float dy = rot[1] - prev[1];
-        float dz = rot[2] - prev[2];
-
-        if (dx != 0) transform.rotateAroundAxis(glm::vec3(1, 0, 0), dx);
-        if (dy != 0) transform.rotateAroundAxis(glm::vec3(0, 1, 0), dy);
-        if (dz != 0) transform.rotateAroundAxis(glm::vec3(0, 0, 1), dz);
+    if (ImGui::DragFloat3("Rotation", rot, 0.1f)) {
+        transform.setRotation({ rot[0], rot[1], rot[2] });
     }
 
     if (ImGui::DragFloat3("Scale", scl, 0.1f, 0.1f, 100.0f)) {
@@ -285,6 +281,18 @@ void EditorLayer::ShowInspectorPanel() {
             if (ImGui::Combo("Type", &current, types, 3)) {
                 rb->setType(static_cast<RigidBodyType>(current));
             }
+
+            float sf = rb->getMaterial()->staticFriction;
+            float df = rb->getMaterial()->dynamicFriction;
+            float res = rb->getMaterial()->restitution;
+            if (ImGui::DragFloat("Static Friction", &sf, 0.01f, 0.0f, 1.0f))
+                rb->getMaterial()->setStaticFriction(sf);
+
+            if (ImGui::DragFloat("Dynamic Friction", &df, 0.01f, 0.0f, 1.0f))
+                rb->getMaterial()->setDynamicFriction(df);
+
+            if (ImGui::DragFloat("Restitution", &res, 0.01f, 0.0f, 1.0f))
+                rb->getMaterial()->setRestitution(res);
         }
     }
 
@@ -371,7 +379,6 @@ void EditorLayer::ShowScenePanel() {
 
     ImGui::Begin("Scene", &showScene);
 
-    // Buttons first
     if (ImGui::Button("Translate")) Gizmo::setMode(GizmoMode::Translate);
     ImGui::SameLine();
     if (ImGui::Button("Rotate")) Gizmo::setMode(GizmoMode::Rotate);
@@ -386,7 +393,6 @@ void EditorLayer::ShowScenePanel() {
         if (ImGui::IsKeyPressed(ImGuiKey_R)) Gizmo::setMode(GizmoMode::Scale);
     }
 
-    // Image ONCE, after buttons
     ImVec2 imagePos = ImGui::GetCursorScreenPos();
     ImVec2 imageSize = ImGui::GetContentRegionAvail();
     sceneViewSize = imageSize;
@@ -395,7 +401,6 @@ void EditorLayer::ShowScenePanel() {
         ImGui::Image((ImTextureID)(intptr_t)sceneViewTexture, imageSize,
             ImVec2(0, 1), ImVec2(1, 0));
 
-        // Selection
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver()) {
             ImVec2 mouse = ImGui::GetMousePos();
             EditorSelectionController::selectEntityFromViewport(
@@ -403,7 +408,6 @@ void EditorLayer::ShowScenePanel() {
                 imageSize.x, imageSize.y);
         }
 
-        // ImGuizmo — use editor camera, not scene camera
         Entity* selected = EntityController::getSelectedEntity();
         if (selected) {
             glm::mat4 view = editorCamera.getViewMatrix();
@@ -428,13 +432,19 @@ void EditorLayer::ShowScenePanel() {
                 op, gizmoLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD,
                 glm::value_ptr(model))) {
 
+                glm::mat4 localMatrix = model;
+
+                TransformComponent* parent = selected->transform.getParent();
+                if (parent)
+                    localMatrix = glm::inverse(parent->getMatrix()) * model;
+
                 glm::vec3 pos, rot, scl;
                 ImGuizmo::DecomposeMatrixToComponents(
-                    glm::value_ptr(model),
+                    glm::value_ptr(localMatrix),
                     glm::value_ptr(pos), glm::value_ptr(rot), glm::value_ptr(scl));
 
                 selected->transform.setPosition(pos);
-                selected->transform.setRotation(glm::radians(rot));
+                selected->transform.setRotation(rot);
                 selected->transform.setScale(scl);
             }
         }

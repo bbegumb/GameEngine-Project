@@ -55,8 +55,8 @@ add_library(Engine
     ${SCENE_COMPONENT_SRC}
     ${RENDERER_SRC}
     ${IMGUI_SRC}
-    Engine/src/glad.c
     
+    Engine/src/renderer/glad.c
     Engine/src/gui/EditorLayer.cpp
     Engine/src/gui/ImGuiLayer.cpp
     Engine/src/gui/ViewportFramebuffer.cpp

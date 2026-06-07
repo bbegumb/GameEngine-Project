@@ -2,17 +2,47 @@
 
 #include <core/Input.h>
 #include <scene/Entity.h>
+#include <scene/components/DirectionalLightComponent.h>
 #include <scene/components/BehaviourComponent.h>
 #include <scene/components/RigidBodyComponent.h>
 #include <persistance/SceneSerializer.h>
 
-Scene::Scene() {
+void Scene::createDefaultScene(Scene& scene) {
+	Entity& cameraEntity = scene.createEntityImmediate("Main Camera");
+	cameraEntity.transform.setPosition(glm::vec3(0, 2, 6));
+	auto& cam = cameraEntity.addComponent<CameraComponent>();
+	scene.setActiveCamera(&cam);
+
+	Entity& lightEntity = scene.createEntityImmediate("Directional Light");
+	lightEntity.transform.setRotation(glm::vec3(-45.0f, -45.0f, 0.0f));
+	auto& light = lightEntity.addComponent<DirectionalLightComponent>();
+	light.color = glm::vec3(1.0f);
+	light.ambientStrength = 0.2f;
+	light.diffuseStrength = 0.8f;
+	light.specularStrength = 0.5f;
+}
+
+Scene::Scene(const std::string& sceneName) : sceneName(sceneName) {
 	physicsWorld.init();
 }
 
 Scene::~Scene() {
 	entities.clear();
 	physicsWorld.shutdown();
+}
+
+void Scene::newScene(const std::string& sceneName) {
+	clear();
+	this->sceneName = sceneName;
+
+	createDefaultScene(*this);
+}
+
+void Scene::openScene(const std::string& sceneName) {
+	clear();
+	this->sceneName = sceneName;
+
+	SceneSerializer::load(*this);
 }
 
 Entity& Scene::createEntity(const std::string& name, Entity* parent) {
@@ -53,6 +83,19 @@ Entity* Scene::findEntity(const std::string& name) {
 			return entity.get();
 	}
 	return nullptr;
+}
+
+void Scene::setActiveCamera(CameraComponent* camera) {
+	if (camera) activeCamera = camera;
+	else {
+		for (auto& entity : entities) {
+			auto cam = entity->getComponent<CameraComponent>();
+			if (cam) {
+				activeCamera = cam;
+				break;
+			}
+		}
+	}
 }
 
 void Scene::onCameraAdded(CameraComponent* camera)

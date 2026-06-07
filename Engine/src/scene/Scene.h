@@ -10,8 +10,16 @@ class CameraComponent;
 
 class Scene {
 public:
-    Scene();
+    Scene(const std::string& sceneName = "scene");
     ~Scene();
+
+    static void createDefaultScene(Scene& scene);
+
+    void newScene(const std::string& sceneName = "scene");
+    void openScene(const std::string& sceneName);
+
+    std::string getSceneName() const { return sceneName; }
+    void setSceneName(const std::string& name) { sceneName = name; }
 
     Entity& createEntity(const std::string& name, Entity* parent = nullptr);
     Entity& createEntityImmediate(const std::string& name, Entity* parent = nullptr);
@@ -20,7 +28,7 @@ public:
     Entity* findEntity(const std::string& name);
 
     CameraComponent* getActiveCamera() const { return activeCamera; }
-    void setActiveCamera(CameraComponent* camera) { activeCamera = camera; }
+    void setActiveCamera(CameraComponent* camera);
     void onCameraAdded(CameraComponent* camera);
 
     void onUpdate(float dt);
@@ -40,6 +48,8 @@ private:
     float colliderCacheTimer = 0.0f;
 
     PhysicsWorld physicsWorld;
+
+    std::string sceneName;
 
     std::vector<std::unique_ptr<Entity>> entities;
     std::vector<std::unique_ptr<Entity>> entitiesToAdd;

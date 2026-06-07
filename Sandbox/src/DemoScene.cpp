@@ -50,7 +50,7 @@ namespace DemoScene
 
         Entity& sun = scene.createEntity("Sun");
         auto& dirLight = sun.addComponent<DirectionalLightComponent>();
-        sun.transform.setRotation(glm::vec3(glm::radians(-45.0f), glm::radians(-30.0f), 0.0f));
+        sun.transform.setRotation(glm::vec3(-60.0f, -120.0f, 0.0f));
         dirLight.color = glm::vec3(1.0f, 0.95f, 0.75f);
         dirLight.ambientStrength = 0.2f;
         dirLight.diffuseStrength = 0.8f;
@@ -58,8 +58,12 @@ namespace DemoScene
 
         Entity& lamp = scene.createEntity("Lamp");
         auto& pointLight = lamp.addComponent<PointLightComponent>();
-        lamp.transform.setPosition(glm::vec3(2.0f, 2.0f, 2.0f));
+        lamp.transform.setPosition(glm::vec3(0.0f, 2.0f, 0.0f));
         lamp.addComponent<DiscoLight>();
+
+        Entity& lamp2 = scene.createEntity("Lamp2");
+        auto& pointLight2 = lamp2.addComponent<PointLightComponent>();
+        lamp2.transform.setPosition(glm::vec3(2.0f, 2.0f, 0.0f));
 
         pointLight.color = glm::vec3(1.0f, 0.9f, 0.7f);
         pointLight.ambientStrength = 0.05f;
@@ -111,6 +115,7 @@ namespace DemoScene
 
         dingus.addComponent<RigidBodyComponent>();
 
+        cameraEntity.transform.setParent(&dingus.transform);
     }
 
     void createScene2(Scene& scene) {

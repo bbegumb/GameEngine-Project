@@ -13,3 +13,18 @@ physx::PxMaterial* PhysicsMaterial::getOrCreate(PhysicsWorld* world) {
 	
 	return pxMat;
 }
+
+void PhysicsMaterial::setStaticFriction(float sf) {
+	staticFriction = sf;
+	if (pxMat) pxMat->setStaticFriction(sf);
+}
+
+void PhysicsMaterial::setDynamicFriction(float df) {
+	dynamicFriction = df;
+	if (pxMat) pxMat->setDynamicFriction(df);
+}
+
+void PhysicsMaterial::setRestitution(float res) {
+	restitution = res;
+	if (pxMat) pxMat->setRestitution(res);
+}

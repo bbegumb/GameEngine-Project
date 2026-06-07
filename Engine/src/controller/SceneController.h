@@ -9,6 +9,8 @@
 class SceneController{
 public:
     static void setScene(Scene* scene);
+    static void newScene(const std::string& sceneName = "scene");
+    static void openScene(const std::string& sceneName);
     static Scene* getScene();
     static Entity* createEntity(const std::string& name);
     static void deleteEntity(Entity* entity);

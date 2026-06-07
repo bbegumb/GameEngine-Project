@@ -36,12 +36,15 @@ void Entity::serialize(nlohmann::json& j) const {
     else
         j["parent"] = nullptr;
 
-    const float* pos = glm::value_ptr(transform.getPosition());
-    glm::quat rot = transform.getRotationQuat();
-    const float* scl = glm::value_ptr(transform.getScale());
+    glm::vec3 worldPos = transform.getWorldPosition();
+    glm::quat worldRot = transform.getWorldRotationQuat();
+    glm::vec3 worldScl = transform.getWorldScale();
+
+    const float* pos = glm::value_ptr(worldPos);
+    const float* scl = glm::value_ptr(worldScl);
 
     j["transform"]["position"] = std::vector<float>(pos, pos + 3);
-    j["transform"]["rotation"] = { rot.x, rot.y, rot.z, rot.w };
+    j["transform"]["rotation"] = { worldRot.x, worldRot.y, worldRot.z, worldRot.w };
     j["transform"]["scale"] = std::vector<float>(scl, scl + 3);
 
     j["components"] = nlohmann::json::array();

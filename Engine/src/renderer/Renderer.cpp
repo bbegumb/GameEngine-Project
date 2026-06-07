@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include <memory>
+
 #include <scene/Scene.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
@@ -14,9 +16,39 @@
 #include <renderer/Material.h>
 
 #include <glad/glad.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <controller/EntityController.h>
+
+// DO NOT change order of this struct pls, memory alignment may break
+struct PointLightGPU {
+	glm::vec3 position;
+	float ambientIntensity;
+	glm::vec3 color;
+	float diffuseIntensity;
+	float specularIntensity;
+	float constant;
+	float linear;
+	float quadratic;
+};
+
+static std::vector<PointLightGPU> buildPointLightBuffer(
+	const std::vector<PointLightComponent*>& pointLightComponents) {
+	std::vector<PointLightGPU> gpuBuffer;
+
+	for (auto* plComp : pointLightComponents) {
+		PointLightGPU pointLight;
+		pointLight.position = plComp->getEntity()->transform.getPosition();
+		pointLight.ambientIntensity = plComp->ambientStrength;
+		pointLight.color = plComp->color;
+		pointLight.diffuseIntensity = plComp->diffuseStrength;
+		pointLight.specularIntensity = plComp->specularStrength;
+		pointLight.constant = plComp->constant;
+		pointLight.linear = plComp->linear;
+		pointLight.quadratic = plComp->quadratic;
+
+		gpuBuffer.push_back(pointLight);
+	}
+
+	return gpuBuffer;
+}
 
 Renderer::Renderer() {
 	initShadowMap();
@@ -72,16 +104,15 @@ void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4
 	if (!activeCamera) return;
 
 	const DirectionalLightComponent* dirLight = nullptr;
-	const PointLightComponent* pointLight = nullptr;
+	std::vector<PointLightComponent*> pointLights;
 
 	for (const auto& entityPtr : scene.getEntities()) {
-		const Entity& entity = *entityPtr;
 
 		if (!dirLight)
-			dirLight = entity.getComponent<DirectionalLightComponent>();
+			dirLight = entityPtr->getComponent<DirectionalLightComponent>();
 
-		if (!pointLight)
-			pointLight = entity.getComponent<PointLightComponent>();
+		auto* pointLight = entityPtr->getComponent<PointLightComponent>();
+		if (pointLight) pointLights.push_back(pointLight);
 	}
 
 	glm::mat4 lightSpaceMatrix(1.0f);
@@ -126,7 +157,8 @@ void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4
 		const MaterialComponent* materialComponent = entity.getComponent<MaterialComponent>();
 		if (!meshComponent || !materialComponent) continue;
 
-		drawEntity(entity, meshComponent, materialComponent, view, proj, glm::vec3(glm::inverse(view)[3]), dirLight, pointLight, lightSpaceMatrix);
+		drawEntity(entity, meshComponent, materialComponent, view, proj,
+			glm::vec3(glm::inverse(view)[3]), dirLight, pointLights, lightSpaceMatrix);
 	}
 }
 
@@ -137,7 +169,7 @@ void Renderer::drawEntity(const Entity& entity,
 	const glm::mat4& proj,
 	const glm::vec3& cameraPosition,
 	const DirectionalLightComponent* dirLight,
-	const PointLightComponent* pointLight,
+	const std::vector<PointLightComponent*> pointLights,
 	const glm::mat4& lightSpaceMatrix) const {
 
 	if (!meshComponent->mesh) return;
@@ -167,21 +199,8 @@ void Renderer::drawEntity(const Entity& entity,
 			shader.setBool("uHasDirectionalLight", false);
 		}
 
-		if (pointLight) {
-			glm::vec3 pointLightPos = pointLight->getEntity()->getTransform().getPosition();
-			shader.setBool("uHasPointLight", true);
-			shader.setVec3("uPointLight.position", pointLightPos);
-			shader.setVec3("uPointLight.color", pointLight->color);
-			shader.setFloat("uPointLight.ambientIntensity", pointLight->ambientStrength);
-			shader.setFloat("uPointLight.diffuseIntensity", pointLight->diffuseStrength);
-			shader.setFloat("uPointLight.specularIntensity", pointLight->specularStrength);
-			shader.setFloat("uPointLight.constant", pointLight->constant);
-			shader.setFloat("uPointLight.linear", pointLight->linear);
-			shader.setFloat("uPointLight.quadratic", pointLight->quadratic);
-		}
-		else {
-			shader.setBool("uHasPointLight", false);
-		}
+		auto buffer = buildPointLightBuffer(pointLights);
+		shader.setSSBO<PointLightGPU>(0, &lightSSBO, buffer);
 
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);

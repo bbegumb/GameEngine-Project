@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 
 struct DirectionalLight {
 	vec3 direction;
@@ -9,14 +9,14 @@ struct DirectionalLight {
 };
 
 struct PointLight {
-	vec3 position;
-	vec3 color;
-	float ambientIntensity;
-	float diffuseIntensity;
-	float specularIntensity;
-	float constant;
-	float linear;
-	float quadratic;
+    vec3 position;
+    float ambientIntensity;
+    vec3 color;
+    float diffuseIntensity;
+    float specularIntensity;
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 struct Material {
@@ -39,7 +39,9 @@ uniform bool uHasDirectionalLight;
 uniform bool uHasPointLight;
 
 uniform DirectionalLight uDirectionalLight;
-uniform PointLight uPointLight;
+layout(std430, binding = 0) buffer pointLightBuffer {
+    PointLight pointLights[];
+};
 
 uniform Material uMaterial;
 
@@ -128,8 +130,11 @@ void main()
     if (uHasDirectionalLight)
         lighting += calculateDirectionalLight(uDirectionalLight, uMaterial, normal, viewDir, albedo);
 
-    if (uHasPointLight)
-        lighting += calculatePointLight(uPointLight, uMaterial, normal, vFragPos, viewDir, albedo);
+    uint pointLightCount = pointLights.length();
+    for (uint i = 0; i < pointLightCount; i++) {
+        PointLight pLight = pointLights[i];
+        lighting += calculatePointLight(pLight, uMaterial, normal, vFragPos, viewDir, albedo);
+    }    
 
     FragColor = vec4(lighting, 1.0);
 }

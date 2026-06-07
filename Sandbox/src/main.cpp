@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -28,7 +29,7 @@ int main() {
         return -1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -58,22 +59,23 @@ int main() {
 
     Input::init(window);
 
-    Scene scene;
+    Scene scene("scene1");
     Renderer renderer;
     
-    std::string defaultScenePath = std::string(SCENES_PATH) + "scene.json";
+    std::filesystem::path defaultScenePath = std::filesystem::current_path() /
+        "assets" / "scenes" / (scene.getSceneName() + ".json");
 
     std::ifstream sceneCheck(defaultScenePath);
     if (sceneCheck.good()) {
         sceneCheck.close();
-        SceneSerializer::load(scene, "scene.json");
-        printf("Loaded scene from %s\n", defaultScenePath.c_str());
+        SceneSerializer::load(scene);
+        printf("Loaded scene from %s\n", defaultScenePath.u8string().c_str());
     }
     else {
-        DemoScene::createScene2(scene);
+        DemoScene::createScene1(scene);
         printf("No saved scene found, created default\n");
         scene.onUpdate(0.0f);
-        SceneSerializer::save(scene, "scene.json");
+        SceneSerializer::save(scene);
     }
 
     ImGuiLayer imguiLayer;
@@ -81,12 +83,12 @@ int main() {
 
     EditorLayer editorLayer;
     auto onSave = [&scene, &defaultScenePath]() {
-        SceneSerializer::save(scene, "scene.json");
+        SceneSerializer::save(scene);
         printf("Scene saved!\n");
     };
     auto onLoad = [&scene, &editorLayer, &defaultScenePath]() {
         scene.clear();
-        SceneSerializer::load(scene, "scene.json");
+        SceneSerializer::load(scene);
         editorLayer.OnEntityRemoved(nullptr);
         printf("Scene loaded!\n");
     };
@@ -94,14 +96,14 @@ int main() {
         glfwSetWindowShouldClose(glfwGetCurrentContext(), true);
     };
     auto onPlay = [&scene]() {
-        SceneSerializer::save(scene, "_temp.json");
+        SceneSerializer::save(scene, true);
         scene.isPlaying = true;
         };
     auto onStop = [&scene]() {
         scene.isPlaying = false;
         scene.clear();
         EntityController::setSelectedEntity(nullptr);
-        SceneSerializer::load(scene, "_temp.json");    
+        SceneSerializer::load(scene, true);    
     };
 
     editorLayer.SetScene(&scene, onSave, onLoad, onExit, onPlay, onStop);
@@ -132,14 +134,26 @@ int main() {
         Input::update();
 
         if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::S) && !scene.isPlaying) {
-            SceneSerializer::save(scene, "scene.json");
+            SceneSerializer::save(scene);
             printf("Scene saved!\n");
         }
 
         if (Input::isKeyDown(Key::LeftControl) && Input::isKeyPressed(Key::O)) {
             scene.clear();
-            SceneSerializer::load(scene, "scene.json");
+            SceneSerializer::load(scene);
             printf("Scene loaded!\n");
+        }
+
+
+        bool isDragging = editorLayer.inspectorFocused &&
+            ImGui::IsAnyItemActive() &&
+            ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+
+        if (isDragging) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
 
         editorLayer.editorCamera.update(dt);

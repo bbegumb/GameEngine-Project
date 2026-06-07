@@ -2,6 +2,8 @@
 
 #include <fstream>
 #include <json.hpp>
+#include <filesystem>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <scene/Scene.h>
@@ -10,8 +12,13 @@
 
 using json = nlohmann::json;
 
-void SceneSerializer::save(const Scene& scene, const std::string& filepath) {
+void SceneSerializer::save(const Scene& scene, bool temp) {
     if (scene.isPlaying) return;
+
+    std::string suffix = temp ? "_temp.json" : ".json";
+
+    std::filesystem::path scenePath = std::filesystem::current_path() /
+        "assets" / "scenes" / (scene.getSceneName() + suffix);
 
     json j;
 
@@ -26,15 +33,19 @@ void SceneSerializer::save(const Scene& scene, const std::string& filepath) {
         j["scene"]["entities"].push_back(ej);
     }
 
-    std::ofstream file(SCENES_PATH + filepath);
+    std::ofstream file(scenePath);
     file << j.dump(4);
 }
 
-void SceneSerializer::load(Scene& scene, const std::string& filepath) {
+bool SceneSerializer::load(Scene& scene, bool temp) {
     scene.isPlaying = false;
 
-    std::ifstream file(SCENES_PATH + filepath);
-    if (!file.is_open()) return;
+    std::string suffix = temp ? "_temp.json" : ".json";
+
+    std::filesystem::path scenePath = std::filesystem::current_path() /
+        "assets" / "scenes" / (scene.getSceneName() + suffix);
+    std::ifstream file(scenePath);
+    if (!file.is_open()) return false;
 
     json j = json::parse(file);
 
@@ -75,4 +86,6 @@ void SceneSerializer::load(Scene& scene, const std::string& filepath) {
             if (cam) scene.setActiveCamera(cam);
         }
     }
+
+    return true;
 }

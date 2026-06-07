@@ -32,6 +32,8 @@ public:
     std::function<void()> onPlay;
     std::function<void()> onStop;
 
+    bool inspectorFocused = false;
+
 private:
     void ShowDockspace();
     void ShowMenuBar();

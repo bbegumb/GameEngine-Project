@@ -33,7 +33,7 @@ private:
 		const glm::mat4& proj,
 		const glm::vec3& cameraPosition,
 		const DirectionalLightComponent* dirLight,
-		const PointLightComponent* pointLight,
+		const std::vector<PointLightComponent*> pointLights,
 		const glm::mat4& lightSpaceMatrix) const;
 
 	void drawEntityDepth(const Entity& entity,
@@ -45,6 +45,7 @@ private:
 
 	unsigned int shadowFBO = 0;
 	unsigned int shadowDepthTexture = 0;
+	mutable unsigned int lightSSBO = 0;
 	static const int SHADOW_WIDTH  = 4096;
 	static const int SHADOW_HEIGHT = 4096;
 
