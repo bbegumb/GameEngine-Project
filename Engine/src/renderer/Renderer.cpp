@@ -17,6 +17,7 @@
 
 #include <glad/glad.h>
 
+
 // DO NOT change order of this struct pls, memory alignment may break
 struct PointLightGPU {
 	glm::vec3 position;

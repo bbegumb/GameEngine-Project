@@ -43,8 +43,6 @@ private:
     void ShowConsolePanel();
     void ShowScenePanel();
     void ShowGamePanel();
-
-private:
     ImVec2 sceneViewSize = ImVec2(1000, 800);
     ImVec2 gameViewSize = ImVec2(1000, 800);
 

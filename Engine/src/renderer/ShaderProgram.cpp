@@ -6,12 +6,14 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <filesystem>
 
 ShaderProgram::ShaderProgram(const std::string& name) {
 	this->name = name;
 
-	std::string vertexSource   = readFile(std::string(SHADER_PATH) + name + ".vert");
-	std::string fragmentSource = readFile(std::string(SHADER_PATH) + name + ".frag");
+	std::filesystem::path shaderBase = std::filesystem::current_path() / "assets" / "shaders";
+	std::string vertexSource = readFile(shaderBase / (name + ".vert"));
+	std::string fragmentSource = readFile(shaderBase / (name + ".frag"));
 
 	unsigned int vertexShader   = compileShader(GL_VERTEX_SHADER, vertexSource);
 	unsigned int fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource);
@@ -74,7 +76,7 @@ unsigned int ShaderProgram::getID() const {
 	return programID;
 }
 
-std::string ShaderProgram::readFile(const std::string& path) {
+std::string ShaderProgram::readFile(const std::filesystem::path& path) {
 	std::ifstream file(path);
 	if (!file.is_open()) {
 		std::cerr << "ERROR: Failed to open shader file: " << path << '\n';
