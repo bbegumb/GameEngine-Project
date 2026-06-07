@@ -1,11 +1,19 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "renderer/Colourpickingrenderer.h"
 
 class Entity;
+class Scene;
 
 class EditorSelectionController {
 public:
+	static EditorSelectionController& getInstance() {
+		static EditorSelectionController instance;
+		return instance;
+	}
+	ColourPickingRenderer& getColourPicker() { return picker; }
+
     static void selectEntityFromViewport(
         float mouseX,
         float mouseY,
@@ -14,10 +22,6 @@ public:
     );
 
 private:
-    static Entity* pickEntityWithRay(
-        float mouseX,
-        float mouseY,
-        float viewportWidth,
-        float viewportHeight
-    );
+	EditorSelectionController() = default;
+	ColourPickingRenderer picker;
 };

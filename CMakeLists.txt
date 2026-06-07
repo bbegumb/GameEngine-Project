@@ -63,10 +63,9 @@ add_library(Engine
     Engine/src/controller/SceneController.cpp
     Engine/src/controller/EntityController.cpp
     Engine/src/controller/TransformController.cpp
-    Engine/src/gui/Gizmohelp.cpp
-    Engine/src/renderer/LineRenderer.cpp
     Engine/src/controller/EditorSelectionController.cpp
- "Engine/src/gui/EditorCamera.cpp")
+    Engine/src/renderer/Colourpickingrenderer.cpp
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -92,10 +91,14 @@ target_link_libraries(Engine PUBLIC
     ${PHYSX_LIB_DIR}/PhysXPvdSDK_static_64.lib
 )
 
+if (MSVC)
+    target_compile_options(Engine PUBLIC /utf-8)
+endif()
+
 target_compile_definitions(Engine PUBLIC
-    SHADER_PATH="${CMAKE_SOURCE_DIR}/assets/shaders/"
-    MODEL_PATH="${CMAKE_SOURCE_DIR}/assets/models/"
-    SCENES_PATH="${CMAKE_SOURCE_DIR}/assets/scenes/"
+    SHADER_PATH=u8"${CMAKE_SOURCE_DIR}/assets/shaders/"
+    MODEL_PATH=u8"${CMAKE_SOURCE_DIR}/assets/models/"
+    SCENES_PATH=u8"${CMAKE_SOURCE_DIR}/assets/scenes/"
 )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
@@ -104,7 +107,8 @@ add_executable(Sandbox
     ${SCRIPTS_SRC}
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
- "Engine/src/gui/EditorCamera.cpp")
+    Engine/src/renderer/Colourpickingrenderer.cpp
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll
