@@ -15,6 +15,21 @@ public:
 	void setVec3(const std::string& uniformName, const glm::vec3& value) const;
 	void setMat4(const std::string& uniformName, const glm::mat4& value) const;
 
+	template<typename T>
+	void setSSBO(GLuint binding, GLuint* SSBO, const std::vector<T>& buffer) {
+		if (*SSBO == 0)
+			glGenBuffers(1, SSBO);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, *SSBO);
+		glBufferData(GL_SHADER_STORAGE_BUFFER,
+			buffer.size() * sizeof(T),
+			buffer.data(),
+			GL_DYNAMIC_DRAW
+		);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, *SSBO);
+	}
+
 	void use() const;
 
 	std::string getName() const { return name; }

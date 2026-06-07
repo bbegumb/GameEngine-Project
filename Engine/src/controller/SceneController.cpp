@@ -10,6 +10,14 @@ Scene* SceneController::getScene(){
     return currentScene;
 }
 
+void SceneController::newScene(const std::string& sceneName) {
+    currentScene->newScene(sceneName);
+}
+
+void SceneController::openScene(const std::string& sceneName) {
+    currentScene->openScene(sceneName);
+}
+
 Entity* SceneController::createEntity(const std::string& name){
     if(!currentScene) return nullptr;
     

@@ -7,7 +7,7 @@ glm::vec3 TransformController::getPosition(Entity* entity) {
 
 glm::vec3 TransformController::getRotation(Entity* entity) {
     if (!entity) return glm::vec3(0.0f);
-    return entity->getTransform().getRotation();
+    return entity->getTransform().getEulerRotation();
 }
 
 glm::vec3 TransformController::getScale(Entity* entity) {

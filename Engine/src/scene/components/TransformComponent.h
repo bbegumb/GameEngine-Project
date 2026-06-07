@@ -32,9 +32,14 @@ public:
 	glm::vec3 up() const;
 
 	glm::vec3 getPosition() const;
-	glm::vec3 getRotation() const;
+	glm::vec3 getEulerRotation() const;
 	glm::quat getRotationQuat() const;
+	glm::vec3 getRawEulerRotation() const;
 	glm::vec3 getScale() const;
+	glm::vec3 getWorldPosition() const;
+	glm::vec3 getWorldEulerAngles() const;
+	glm::quat getWorldRotationQuat() const;
+	glm::vec3 getWorldScale() const;
 
 	TransformComponent* getParent() const { return parent; }
 
@@ -46,9 +51,14 @@ private:
 	std::vector<TransformComponent*> children;
 
 	mutable bool isMatrixValid = false;
+	mutable bool worldEulerValid = false;
 	mutable glm::mat4 modelMatrix;
+	mutable glm::vec3 cachedWorldEuler = glm::vec3(0.0f);
 
 	glm::vec3 position{ 0.0f, 0.0f, 0.0f };
 	glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
 	glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
+
+	mutable bool eulerDirty = true;
+	mutable glm::vec3 cachedEuler{ 0.0f };
 };

@@ -32,6 +32,8 @@ public:
 
 	void setType(RigidBodyType newType);
 
+	std::shared_ptr<PhysicsMaterial> getMaterial() const { return material; }
+
 private:
 	glm::vec3 lastScale = glm::vec3(1.0f);
 

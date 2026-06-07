@@ -16,6 +16,10 @@ public:
 
 	physx::PxMaterial* getOrCreate(PhysicsWorld* world = nullptr);
 
+	void setStaticFriction(float sf);
+	void setDynamicFriction(float df);
+	void setRestitution(float res);
+
 	float staticFriction;
 	float dynamicFriction;
 	float restitution;
