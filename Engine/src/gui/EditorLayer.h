@@ -4,6 +4,7 @@
 
 #include <functional>
 #include "EditorCamera.h"
+#include <gui/FileManagerPanel.h>
 
 class Scene;
 class Entity;
@@ -13,6 +14,8 @@ public:
     void SetScene(Scene* scene, std::function<void()> onSave,
         std::function<void()> onLoad, std::function<void()> onExit,
         std::function<void()> onPlay, std::function<void()> onStop);
+
+    void initFileManager(const std::string& rootAssetsPath, const std::string& scriptsPath);
 
     void OnUIRender();
     ImVec2 getSceneViewSize() const { return sceneViewSize; }
@@ -50,4 +53,7 @@ private:
     bool showConsole = true;
     bool showScene = true;
     bool showGame = true;
+    bool showFileManager = true;
+
+    FileManagerPanel fileManager;
 };
