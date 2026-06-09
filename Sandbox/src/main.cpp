@@ -22,6 +22,7 @@
 #include "gui/ImGuiLayer.h"
 #include "gui/EditorLayer.h"
 #include "gui/ViewportFramebuffer.h"
+#include <scripts/KinematicMover.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -119,6 +120,8 @@ int main() {
     };
 
     editorLayer.SetScene(&scene, onSave, onLoad, onExit, onPlay, onStop);
+
+    editorLayer.initFileManager((std::filesystem::current_path() / "assets").string(), (std::filesystem::current_path() / "scripts").string());
 
     ViewportFramebuffer gameFramebuffer;
     gameFramebuffer.Init(1000, 800);
