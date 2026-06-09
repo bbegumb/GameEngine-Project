@@ -8,9 +8,12 @@ void Material::apply() const {
 
 	shader->use();
 	shader->setVec3("uMaterial.albedo", albedo);
+	shader->setVec3("uMaterial.emission", emission);
 	shader->setFloat("uMaterial.ambientReflectance", ambientReflectance);
 	shader->setFloat("uMaterial.specularReflectance", specularReflectance);
 	shader->setFloat("uMaterial.shininess", shininess);
+	shader->setFloat("uMaterial.alpha", alpha);
+	shader->setBool("uMaterial.transparent", transparent);
 
 	if (diffuseTexture) {
 		diffuseTexture->bind(0);

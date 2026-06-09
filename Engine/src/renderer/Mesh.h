@@ -21,6 +21,7 @@ public:
 	void drawSubMesh(int index) const;
 
 	const std::vector<Vertex>& getVertices() const { return vertices; }
+	const std::vector<unsigned int>& getIndices() const { return indices; }
 
 	int getSubMeshCount() const { return submeshes.empty() ? 1 : submeshes.size(); }
 	const std::vector<SubMesh>& getSubMeshes() const { return submeshes; }

@@ -51,6 +51,16 @@ static std::vector<PointLightGPU> buildPointLightBuffer(
 	return gpuBuffer;
 }
 
+static bool hasAnyTransparent(const MaterialComponent* matc) {
+	int i = 0;
+	int count = matc->getMaterialCount();
+	while (i < count) {
+		Material* m = matc->getMaterial(i++);
+		if (m->transparent) return true;
+	}
+	return false;
+}
+
 Renderer::Renderer() {
 	initShadowMap();
 
@@ -89,9 +99,9 @@ void Renderer::initShadowMap() {
 }
 
 void Renderer::render(const Scene& scene) {
-	CameraComponent* cam = scene.getActiveCamera();
-	if (!cam) return;
-	render(scene, cam->getViewMatrix(), cam->getProjectionMatrix());
+    CameraComponent* cam = scene.getActiveCamera();
+    if (!cam) return;
+    render(scene, cam->getViewMatrix(), cam->getProjectionMatrix());
 }
 
 void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4& proj) {
@@ -101,66 +111,82 @@ void Renderer::render(const Scene& scene, const glm::mat4& view, const glm::mat4
 	GLint previousFBO;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFBO);
 
-	CameraComponent* activeCamera = scene.getActiveCamera();
-	if (!activeCamera) return;
+	glm::vec3 camPos = glm::vec3(glm::inverse(view)[3]);
 
 	const DirectionalLightComponent* dirLight = nullptr;
 	std::vector<PointLightComponent*> pointLights;
 
 	for (const auto& entityPtr : scene.getEntities()) {
-
 		if (!dirLight)
 			dirLight = entityPtr->getComponent<DirectionalLightComponent>();
-
-		auto* pointLight = entityPtr->getComponent<PointLightComponent>();
-		if (pointLight) pointLights.push_back(pointLight);
+		auto* pl = entityPtr->getComponent<PointLightComponent>();
+		if (pl) pointLights.push_back(pl);
 	}
 
 	glm::mat4 lightSpaceMatrix(1.0f);
 
 	if (dirLight) {
-		lightSpaceMatrix = dirLight->getLightSpaceMatrix(activeCamera);
+		lightSpaceMatrix = dirLight->getLightSpaceMatrix(camPos);
 
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 
-		//glCullFace(GL_FRONT);
-		//glEnable(GL_CULL_FACE);
-
 		depthShader->use();
 
-		for (const auto& entiyPtr : scene.getEntities()) {
-			const Entity& entity = *entiyPtr;
-			const MeshComponent* mc = entity.getComponent<MeshComponent>();
-			const MaterialComponent* matc = entity.getComponent<MaterialComponent>();
+		for (const auto& entityPtr : scene.getEntities()) {
+			const MeshComponent* mc = entityPtr->getComponent<MeshComponent>();
+			const MaterialComponent* matc = entityPtr->getComponent<MaterialComponent>();
 			if (!mc || !matc || !mc->mesh) continue;
 
-			drawEntityDepth(entity, mc, lightSpaceMatrix);
+			drawEntityDepth(*entityPtr, mc, lightSpaceMatrix);
 		}
 
-		//glCullFace(GL_BACK);
-		//glDisable(GL_CULL_FACE);
 		glBindFramebuffer(GL_FRAMEBUFFER, previousFBO);
 	}
 
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	for (const auto& entityPtr : scene.getEntities()) {
-		const Entity& entity = *entityPtr;
+		const MeshComponent* mc = entityPtr->getComponent<MeshComponent>();
+		const MaterialComponent* matc = entityPtr->getComponent<MaterialComponent>();
+		if (!mc || !matc) continue;
 
-		const MeshComponent* meshComponent = entity.getComponent<MeshComponent>();
-		const MaterialComponent* materialComponent = entity.getComponent<MaterialComponent>();
-		if (!meshComponent || !materialComponent) continue;
-
-		drawEntity(entity, meshComponent, materialComponent, view, proj,
-			glm::vec3(glm::inverse(view)[3]), dirLight, pointLights, lightSpaceMatrix);
+		drawEntity(*entityPtr, mc, matc, view, proj, camPos,
+			dirLight, pointLights, lightSpaceMatrix, false);
 	}
+
+	std::vector<const Entity*> transparentEntities;
+	for (const auto& entityPtr : scene.getEntities()) {
+		const MaterialComponent* matc = entityPtr->getComponent<MaterialComponent>();
+		if (matc && hasAnyTransparent(matc))
+			transparentEntities.push_back(entityPtr.get());
+	}
+
+	std::sort(transparentEntities.begin(), transparentEntities.end(),
+		[&camPos](const Entity* a, const Entity* b) {
+			return glm::length(a->transform.getWorldPosition() - camPos) >
+				glm::length(b->transform.getWorldPosition() - camPos);
+		});
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthMask(GL_FALSE);
+
+	for (const Entity* entity : transparentEntities) {
+		const MeshComponent* mc = entity->getComponent<MeshComponent>();
+		const MaterialComponent* matc = entity->getComponent<MaterialComponent>();
+		if (!mc || !matc) continue;
+		drawEntity(*entity, mc, matc, view, proj, camPos,
+			dirLight, pointLights, lightSpaceMatrix, true);
+	}
+
+	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
 }
 
 void Renderer::drawEntity(const Entity& entity,
@@ -171,7 +197,8 @@ void Renderer::drawEntity(const Entity& entity,
 	const glm::vec3& cameraPosition,
 	const DirectionalLightComponent* dirLight,
 	const std::vector<PointLightComponent*> pointLights,
-	const glm::mat4& lightSpaceMatrix) const {
+	const glm::mat4& lightSpaceMatrix,
+	bool transparentOnly) const {
 
 	if (!meshComponent->mesh) return;
 
@@ -201,7 +228,7 @@ void Renderer::drawEntity(const Entity& entity,
 		}
 
 		auto buffer = buildPointLightBuffer(pointLights);
-		shader.setSSBO<PointLightGPU>(0, &lightSSBO, buffer);
+		shader.setSSBO<PointLightGPU>(0, &lightSSBO, "uPointLightCount", buffer);
 
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
@@ -213,6 +240,7 @@ void Renderer::drawEntity(const Entity& entity,
 	if (submeshes.empty()) {
 		Material* mat = materialComponent->getMaterial(0);
 		if (!mat || !mat->shader) return;
+		if (mat->transparent != transparentOnly) return; // skip wrong pass
 		drawWithMaterial(*mat);
 		meshComponent->mesh->draw();
 	}
@@ -221,6 +249,7 @@ void Renderer::drawEntity(const Entity& entity,
 			Material* mat = materialComponent->getMaterial(submeshes[i].materialIndex);
 			if (!mat) mat = materialComponent->getMaterial(0);
 			if (!mat || !mat->shader) continue;
+			if (mat->transparent != transparentOnly) continue; // skip wrong pass
 			drawWithMaterial(*mat);
 			meshComponent->mesh->drawSubMesh(i);
 		}

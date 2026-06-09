@@ -1,11 +1,22 @@
 #include "MeshComponent.h"
 
+#include <scene/components/MaterialComponent.h>
+#include <scene/Entity.h>
 #include <core/AssetManager.h>
 #include <persistance/ComponentFactory.h>
 #include <renderer/Mesh.h>
 #include <renderer/ObjLoader.h>
 
 REGISTER(MeshComponent);
+
+bool MeshComponent::onAttach() {
+    auto* matc = owner->getComponent<MaterialComponent>();
+    if (!matc) {
+        owner->addComponent<MaterialComponent>();
+    }
+
+    return true;
+}
 
 void MeshComponent::serialize(nlohmann::json& j) const {
     if (!mesh) j["mesh"] = "";

@@ -9,9 +9,16 @@ class MaterialComponent : public Component {
 public:
     MaterialComponent(std::shared_ptr<Material> material = nullptr) {
         if (material) materials.push_back(material);
+        else {
+            auto shader = AssetManager::getShader("lit");
+            auto mat = std::make_shared<Material>(shader);
+            materials.push_back(mat);
+        }
     }
 
     MaterialComponent(std::vector<std::shared_ptr<Material>> mats) : materials(std::move(mats)) {}
+
+    int getMaterialCount() const { return materials.size(); }
 
     std::vector<std::shared_ptr<Material>> materials;
 

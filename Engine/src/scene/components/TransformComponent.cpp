@@ -77,6 +77,7 @@ void TransformComponent::invalidate()
 {
     isMatrixValid = false;
     worldEulerValid = false;
+    physicsDirty = true;
 
     for (auto* child : children)
         child->invalidate();

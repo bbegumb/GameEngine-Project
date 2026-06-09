@@ -13,6 +13,8 @@ public:
 
 	void setMesh(std::shared_ptr<Mesh> mesh) { this->mesh = mesh; }
 
+	bool onAttach() override;
+
 	void serialize(nlohmann::json& j) const override;
 	void deserialize(const nlohmann::json& j) override;
 };

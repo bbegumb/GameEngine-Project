@@ -226,6 +226,10 @@ LoadedModel ObjLoader::loadModel(const std::string& objName) {
 
         mat->shininess = tmat.shininess > 0.0f ? tmat.shininess : 32.0f;
         mat->specularReflectance = (tmat.specular[0] + tmat.specular[1] + tmat.specular[2]) / 3.0f;
+        mat->alpha = tmat.dissolve;
+        mat->transparent = tmat.dissolve < 1.0f;
+        printf("mat %s dissolve=%.2f transparent=%d\n",
+            tmat.name.c_str(), tmat.dissolve, mat->transparent);
 
         if (!tmat.diffuse_texname.empty()) {
             mat->diffuseTexture = AssetManager::getTexture(tmat.diffuse_texname);

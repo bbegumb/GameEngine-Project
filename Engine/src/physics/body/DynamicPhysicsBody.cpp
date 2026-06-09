@@ -12,6 +12,9 @@ DynamicPhysicsBody::DynamicPhysicsBody(PhysicsWorld* world, const glm::vec3& pos
 									   std::shared_ptr<CollisionShape> shape, const glm::vec3& scale, bool kinematic)
 	: PhysicsBody(world, mat, shape), _isKinematic(kinematic) {
 
+	linearDamping = 0.2f;
+	angularDamping = 0.1f;
+
 	PxPhysics* physics = world->getPhysics();
 	PxMaterial* pxMat = mat.get()->getOrCreate();
 
@@ -25,6 +28,10 @@ DynamicPhysicsBody::DynamicPhysicsBody(PhysicsWorld* world, const glm::vec3& pos
 	}
 	actor->attachShape(*pxShape);
 
+	static_cast<PxRigidDynamic*>(actor)->setLinearDamping(linearDamping);
+	static_cast<PxRigidDynamic*>(actor)->setAngularDamping(angularDamping);
+	static_cast<PxRigidDynamic*>(actor)->setSleepThreshold(0.005f);
+
 	if (_isKinematic)
 		static_cast<PxRigidDynamic*>(actor)->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 	else
@@ -33,8 +40,8 @@ DynamicPhysicsBody::DynamicPhysicsBody(PhysicsWorld* world, const glm::vec3& pos
 	world->addActor(*actor);
 }
 
-void DynamicPhysicsBody::setGlobalPose(const glm::vec3& pos, const glm::quat& rot) {
-	actor->setGlobalPose(PxTransform(toPx(pos), toPx(rot)));
+void DynamicPhysicsBody::setGlobalPose(const glm::vec3& pos, const glm::quat& rot, bool autowake) {
+	actor->setGlobalPose(PxTransform(toPx(pos), toPx(rot)), autowake);
 }
 
 void DynamicPhysicsBody::setKinematicTarget(const glm::vec3& pos, const glm::quat& rot) {
@@ -72,6 +79,16 @@ void DynamicPhysicsBody::setLinearVelocity(const glm::vec3& vel) {
 void DynamicPhysicsBody::setAngularVelocity(const glm::vec3& vel) {
 	if (!_isKinematic)
 		static_cast<PxRigidDynamic*>(actor)->setAngularVelocity(toPx(vel));
+}
+
+void DynamicPhysicsBody::setLinearDamping(float damping) {
+	linearDamping = damping;
+	static_cast<PxRigidDynamic*>(actor)->setLinearDamping(damping);
+}
+
+void DynamicPhysicsBody::setAngularDamping(float damping) {
+	angularDamping = damping;
+	static_cast<PxRigidDynamic*>(actor)->setAngularDamping(damping);
 }
 
 glm::vec3 DynamicPhysicsBody::getLinearVelocity() const {

@@ -25,10 +25,14 @@ void MaterialComponent::serialize(nlohmann::json& j) const {
             mj["shader"] = mat->shader->getName();
 
         const float* a = glm::value_ptr(mat->albedo);
+        const float* e = glm::value_ptr(mat->emission);
         mj["albedo"] = std::vector<float>(a, a + 3);
+        mj["emission"] = std::vector<float>(e, e + 3);
         mj["shininess"] = mat->shininess;
         mj["ambientReflectance"] = mat->ambientReflectance;
         mj["specularReflectance"] = mat->specularReflectance;
+        mj["alpha"] = mat->alpha;
+        mj["transparent"] = mat->transparent;
 
         if (mat->diffuseTexture)
             mj["diffuseTexture"] = mat->diffuseTexture->getName();
@@ -45,15 +49,24 @@ void MaterialComponent::deserialize(const nlohmann::json& j) {
             auto shader = AssetManager::getShader(mj.value("shader", "lit"));
 
             glm::vec3 albedo(0.5f);
+            glm::vec3 emission(0.0f);
             if (mj.contains("albedo")) {
                 auto a = mj["albedo"].get<std::vector<float>>();
                 albedo = glm::make_vec3(a.data());
             }
 
+            if (mj.contains("emission")) {
+                auto e = mj["emission"].get<std::vector<float>>();
+                emission = glm::make_vec3(e.data());
+            }
+
             auto mat = std::make_shared<Material>(shader, albedo);
+            mat->emission = emission;
             mat->shininess = mj.value("shininess", 32.0f);
             mat->ambientReflectance = mj.value("ambientReflectance", 0.5f);
             mat->specularReflectance = mj.value("specularReflectance", 0.5f);
+            mat->alpha = mj.value("alpha", 1.0f);
+            mat->transparent = mj.value("transparent", false);
 
             if (mj.contains("diffuseTexture")) {
                 std::string texName = mj["diffuseTexture"];

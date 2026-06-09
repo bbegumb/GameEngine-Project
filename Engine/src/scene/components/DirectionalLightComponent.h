@@ -26,7 +26,7 @@ public:
     float shadowNear;
     float shadowFar;
 
-    glm::mat4 getLightSpaceMatrix(const CameraComponent* camera) const;
+    glm::mat4 getLightSpaceMatrix(const glm::vec3& camPos) const;
 
     glm::vec3 getDirection() const;
 

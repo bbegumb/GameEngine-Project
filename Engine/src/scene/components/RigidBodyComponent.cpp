@@ -3,6 +3,7 @@
 #include <persistance/ComponentFactory.h>
 #include <scene/Entity.h>
 #include <scene/components/MeshComponent.h>
+#include <renderer/Mesh.h>
 
 #include <physics/body/StaticPhysicsBody.h>
 #include <physics/body/DynamicPhysicsBody.h>
@@ -25,11 +26,19 @@ bool RigidBodyComponent::onAttach() {
     
     if (!shape) {
         auto* mc = owner->getComponent<MeshComponent>();
-        if (mc && mc->mesh)
-            shape = world.getOrCreateShape(mc->mesh.get(), scale, forceConvex);
-        else
+        if (mc && mc->mesh) {
+            if (useTriangleMesh)
+                shape = std::make_shared<CollisionShape>(
+                    CollisionShape::triangleMesh(
+                        mc->mesh->getVertices(),
+                        mc->mesh->getIndices()));
+            else
+                shape = world.getOrCreateShape(mc->mesh.get(), scale, forceConvex);
+        }
+        else {
             shape = std::make_shared<CollisionShape>(
                 CollisionShape::boxMesh(owner->transform.getScale() * 0.5f));
+        }
     }
 
     if (type == RigidBodyType::Static) {
@@ -68,10 +77,14 @@ void RigidBodyComponent::pushToWorld() {
     glm::quat rot = owner->transform.getRotationQuat();
 
     if (type == RigidBodyType::Dynamic) {
-        static_cast<DynamicPhysicsBody*>(body.get())->setGlobalPose(pos, rot);
+        bool wake = owner->transform.physicsDirty;
+        static_cast<DynamicPhysicsBody*>(body.get())->setGlobalPose(pos, rot, wake);
     }
     else if (type == RigidBodyType::Kinematic) {
         static_cast<DynamicPhysicsBody*>(body.get())->setKinematicTarget(pos, rot);
+    }
+    else {
+        static_cast<StaticPhysicsBody*>(body.get())->setGlobalPose(pos, rot);
     }
 }
 
@@ -80,6 +93,7 @@ void RigidBodyComponent::pullFromWorld() {
         owner->transform.setPosition(body->getPosition());
         owner->transform.setRotation(body->getRotation());
     }
+    owner->transform.physicsDirty = false;
 }
 
 void RigidBodyComponent::recookShape() {
@@ -102,6 +116,15 @@ void RigidBodyComponent::serialize(nlohmann::json& j) const {
     }
     j["forceConvex"] = forceConvex;
 
+    if (shape) {
+        switch (shape->getType()) {
+        case CollisionShapeType::TriangleMesh: j["shapeType"] = "Triangle"; break;
+        case CollisionShapeType::ConvexMesh:   j["shapeType"] = "Convex"; break;
+        case CollisionShapeType::BoxMesh:      j["shapeType"] = "Box"; break;
+        case CollisionShapeType::SphereMesh:   j["shapeType"] = "Sphere"; break;
+        }
+    }
+
     if (material) {
         j["staticFriction"] = material->staticFriction;
         j["dynamicFriction"] = material->dynamicFriction;
@@ -116,6 +139,11 @@ void RigidBodyComponent::deserialize(const nlohmann::json& j) {
     else type = Dynamic;
 
     forceConvex = j.value("forceConvex", false);
+
+    std::string shapeType = j.value("shapeType", "Box");
+    if (shapeType == "Triangle") {
+        useTriangleMesh = true;
+    }
 
     if (j.contains("staticFriction")) {
         material = std::make_shared<PhysicsMaterial>(
@@ -134,6 +162,20 @@ void RigidBodyComponent::setType(RigidBodyType newType) {
 void RigidBodyComponent::rebuild() {
     body.reset();
     onAttach();
+}
+
+void RigidBodyComponent::setLinearDamping(float damping) {
+    auto* dynamicBody = dynamic_cast<DynamicPhysicsBody*>(body.get());
+    if (dynamicBody) {
+        dynamicBody->setLinearDamping(damping);
+    }
+}
+
+void RigidBodyComponent::setAngularDamping(float damping) {
+    auto* dynamicBody = dynamic_cast<DynamicPhysicsBody*>(body.get());
+    if (dynamicBody) {
+        dynamicBody->setAngularDamping(damping);
+    }
 }
 
 REGISTER(RigidBodyComponent);

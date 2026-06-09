@@ -44,6 +44,8 @@ public:
 	TransformComponent* getParent() const { return parent; }
 
 	std::function<bool()> onBeforeReparent = nullptr;
+
+	mutable bool physicsDirty = true;
 private:
 	void invalidate();
 
