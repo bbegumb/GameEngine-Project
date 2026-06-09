@@ -65,7 +65,7 @@ add_library(Engine
     Engine/src/controller/TransformController.cpp
     Engine/src/controller/EditorSelectionController.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -99,10 +99,13 @@ target_compile_definitions(Engine PUBLIC
     SHADER_PATH=u8"${CMAKE_SOURCE_DIR}/assets/shaders/"
     MODEL_PATH=u8"${CMAKE_SOURCE_DIR}/assets/models/"
     SCENES_PATH=u8"${CMAKE_SOURCE_DIR}/assets/scenes/"
+    ASSETS_PATH=u8"${CMAKE_SOURCE_DIR}/assets/"
+    SCRIPTS_PATH="${CMAKE_SOURCE_DIR}/Sandbox/scripts/"
 )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Sandbox/icon.png DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY Sandbox/src/scripts DESTINATION ${CMAKE_BINARY_DIR})
 
 add_executable(Sandbox
     ${SCRIPTS_SRC}
@@ -110,7 +113,7 @@ add_executable(Sandbox
     Sandbox/src/DemoScene.cpp
     Sandbox/src/DemoScenes.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll
