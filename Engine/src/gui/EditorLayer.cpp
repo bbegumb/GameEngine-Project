@@ -19,12 +19,14 @@
 #include <scene/components/MaterialComponent.h>
 #include <scene/components/MeshComponent.h>
 #include <scene/components/RigidBodyComponent.h>
+#include <persistance/ComponentFactory.h>
 #include <renderer/Texture.h>
 #include <renderer/Material.h>
 #include <renderer/Mesh.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cmath>
+#include <filesystem>
 
 void EditorLayer::SetScene(Scene* scene, std::function<void()> onSave,
     std::function<void()> onLoad, std::function<void()> onExit,
@@ -35,6 +37,23 @@ void EditorLayer::SetScene(Scene* scene, std::function<void()> onSave,
     this->onExit = onExit;
     this->onPlay = onPlay;
     this->onStop = onStop;
+}
+
+void EditorLayer::initFileManager(const std::string& rootAssetsPath, const std::string& scriptsPath) {
+    fileManager.init(rootAssetsPath);
+    fileManager.initScriptsPath(scriptsPath);
+
+    fileManager.onOpenScene = [this](const std::string& path) {
+        if (onLoad) onLoad();
+        };
+
+    fileManager.onDropMesh = [](const std::string& path) {
+        AssetManager::getMesh(std::filesystem::path(path).filename().string());
+        };
+
+    fileManager.onDropTexture = [](const std::string& path) {
+        AssetManager::getTexture(std::filesystem::path(path).filename().string());
+        };
 }
 
 void EditorLayer::OnUIRender() {
@@ -58,6 +77,9 @@ void EditorLayer::OnUIRender() {
 
     if (showGame)
         ShowGamePanel();
+
+    if (showFileManager)
+        fileManager.show(&showFileManager);
 }
 
 void EditorLayer::ShowDockspace() {
@@ -259,8 +281,24 @@ void EditorLayer::ShowInspectorPanel() {
                 if (mc->getMaterial(i)) {
                     auto texture = mc->getMaterial(i)->diffuseTexture;
                     if (texture) ImGui::Text(texture->getName().c_str());
+                    auto* mat = mc->getMaterial(i);
 
                     std::string numLabel = std::to_string(i + 1);
+                    std::string texName = texture ? texture->getName() : "None  (drop image here)";
+                    ImGui::Text("Texture %d: %s", i + 1, texName.c_str());
+
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* pl =
+                            ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
+                            std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
+                            std::string filename = std::filesystem::path(path).filename().string();
+                            auto loadedTex = AssetManager::getTexture(filename);
+                            if (loadedTex)
+                                mat->diffuseTexture = loadedTex;
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
                     ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), & mc->getMaterial(i)->albedo.x);
                     ImGui::DragFloat(("Shininess ##" + numLabel).c_str(), &mc->getMaterial(i)->shininess, 1.0f, 1.0f, 512.0f);
                     ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->ambientReflectance, 0.01f, 0.0f, 1.0f);
@@ -275,6 +313,20 @@ void EditorLayer::ShowInspectorPanel() {
         if (ImGui::CollapsingHeader("Mesh")) {
             std::string name = mesh->mesh ? mesh->mesh->getName() : "None";
             ImGui::Text("Mesh: %s", name.c_str());
+            ImGui::SameLine();
+            ImGui::TextDisabled("(drop .obj/.fbx/.gltf here)");
+
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* pl =
+                    ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
+                    std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
+                    std::string filename = std::filesystem::path(path).filename().string();
+                    auto loadedMesh = AssetManager::getMesh(filename);
+                    if (loadedMesh)
+                        mesh->mesh = loadedMesh;
+                }
+                ImGui::EndDragDropTarget();
+            }
         }
     }
 
@@ -348,7 +400,56 @@ void EditorLayer::ShowInspectorPanel() {
             }
         }
     }
+    ImGui::Separator();
+    if (ImGui::Button("Add Component"))
+        ImGui::OpenPopup("AddComponentPopup");
 
+    if (ImGui::BeginPopup("AddComponentPopup")) {
+        if (!selectedEntity->getComponent<MeshComponent>()) {
+            if (ImGui::MenuItem("Mesh"))
+                selectedEntity->addComponent<MeshComponent>();
+        }
+        if (!selectedEntity->getComponent<MaterialComponent>()) {
+            if (ImGui::MenuItem("Material"))
+                selectedEntity->addComponent<MaterialComponent>();
+        }
+        if (!selectedEntity->getComponent<CameraComponent>()) {
+            if (ImGui::MenuItem("Camera"))
+                selectedEntity->addComponent<CameraComponent>();
+        }
+        if (!selectedEntity->getComponent<DirectionalLightComponent>()) {
+            if (ImGui::MenuItem("Directional Light"))
+                selectedEntity->addComponent<DirectionalLightComponent>();
+        }
+        if (!selectedEntity->getComponent<PointLightComponent>()) {
+            if (ImGui::MenuItem("Point Light"))
+                selectedEntity->addComponent<PointLightComponent>();
+        }
+        if (!selectedEntity->getComponent<RigidBodyComponent>()) {
+            if (ImGui::MenuItem("RigidBody"))
+                selectedEntity->addComponent<RigidBodyComponent>();
+        }
+        ImGui::Separator();
+
+        auto scriptNames = fileManager.getScriptNames();
+        if (scriptNames.empty()) {
+            ImGui::TextDisabled("No scripts found");
+            ImGui::TextDisabled("(add scripts via File Manager > Scripts tab)");
+        }
+        else {
+            if (ImGui::BeginMenu("Script")) {
+                for (auto& scriptName : scriptNames) {
+					scriptName = scriptName.substr(0, scriptName.find_last_of('.'));
+					if (ImGui::MenuItem(scriptName.c_str())) {
+						ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
+					}
+                }
+                ImGui::EndMenu();
+            }
+        }
+
+        ImGui::EndPopup();
+    }
     ImGui::End();
 }
 
