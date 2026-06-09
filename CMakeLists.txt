@@ -102,11 +102,13 @@ target_compile_definitions(Engine PUBLIC
 )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY Sandbox/icon.png DESTINATION ${CMAKE_BINARY_DIR})
 
 add_executable(Sandbox
     ${SCRIPTS_SRC}
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
+    Sandbox/src/DemoScenes.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
     Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp")
 
@@ -116,6 +118,14 @@ set(PHYSX_DLL_NAMES
     PhysXFoundation_64.dll
     PhysXCooking_64.dll
 )
+
+if(WIN32)
+    target_sources(Sandbox PRIVATE Sandbox/resources.rc)
+    set_source_files_properties(
+        Sandbox/resources.rc PROPERTIES
+        COMPILE_FLAGS "/I\"${CMAKE_CURRENT_SOURCE_DIR}/Sandbox\""
+    )
+endif()
 
 foreach(DLL ${PHYSX_DLL_NAMES})
     add_custom_command(TARGET Sandbox POST_BUILD

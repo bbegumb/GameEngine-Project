@@ -25,3 +25,7 @@ StaticPhysicsBody::StaticPhysicsBody(PhysicsWorld* world, const glm::vec3& pos,
 
 	world->addActor(*actor);
 }
+
+void StaticPhysicsBody::setGlobalPose(const glm::vec3& pos, const glm::quat& rot) {
+	actor->setGlobalPose(PxTransform(toPx(pos), toPx(rot)), false);
+}

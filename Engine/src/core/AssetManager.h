@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include <renderer/ObjLoader.h>
+
 class Mesh;
 class LoadedModel;
 class ShaderProgram;

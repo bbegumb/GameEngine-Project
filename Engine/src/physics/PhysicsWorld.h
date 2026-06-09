@@ -22,20 +22,15 @@ inline quat toGlm(const PxQuat& q) { return quat(q.w, q.x, q.y, q.z); }
 
 struct ShapeCacheKey {
 	const Mesh* mesh;
-	glm::vec3 scale;
-
+	bool forceConvex;
 	bool operator==(const ShapeCacheKey& other) const {
-		return mesh == other.mesh && scale == other.scale;
+		return mesh == other.mesh && forceConvex == other.forceConvex;
 	}
 };
 
 struct ShapeCacheKeyHash {
 	size_t operator()(const ShapeCacheKey& k) const {
-		size_t h = std::hash<const void*>()(k.mesh);
-		h ^= std::hash<float>()(k.scale.x) << 1;
-		h ^= std::hash<float>()(k.scale.y) << 2;
-		h ^= std::hash<float>()(k.scale.z) << 3;
-		return h;
+		return std::hash<const Mesh*>()(k.mesh) ^ std::hash<bool>()(k.forceConvex);
 	}
 };
 

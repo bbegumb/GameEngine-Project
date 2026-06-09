@@ -180,13 +180,13 @@ namespace DemoScene
         CameraComponent& camera = cameraEntity.addComponent<CameraComponent>(70.0f, 1000.0f / 800.0f, 0.1f, 100.0f);
 
         cameraEntity.transform.setPosition(glm::vec3(0.0f, 2.0f, 6.0f));
-        cameraEntity.transform.rotate(glm::vec3{ glm::radians(-15.0f), 0.0f, 0.0f });
+        cameraEntity.transform.rotate(glm::vec3{ -15.0f, 0.0f, 0.0f });
 
         scene.setActiveCamera(&camera);
 
         Entity& sun = scene.createEntity("Sun");
         auto& dirLight = sun.addComponent<DirectionalLightComponent>();
-        sun.transform.setRotation(glm::vec3(glm::radians(-45.0f), glm::radians(-30.0f), 0.0f));
+        sun.transform.setRotation(glm::vec3(-45.0f, -30.0f, 0.0f));
         dirLight.color = glm::vec3(1.0f, 0.95f, 0.75f);
         dirLight.ambientStrength = 0.2f;
         dirLight.diffuseStrength = 0.8f;

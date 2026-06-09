@@ -1,6 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -14,6 +17,7 @@
 #include <renderer/Renderer.h>
 
 #include "DemoScene.h"
+#include "DemoScenes.h"
 
 #include "gui/ImGuiLayer.h"
 #include "gui/EditorLayer.h"
@@ -37,11 +41,19 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(1000, 800, "Dev Window", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1000, 800, "Very Real Engine 1", nullptr, nullptr);
     if (!window) {
         std::cout << "Failed to create window.\n";
         glfwTerminate();
         return -1;
+    }
+
+    int iconW, iconH, iconChannels;
+    unsigned char* iconPixels = stbi_load("icon.png", &iconW, &iconH, &iconChannels, 4);
+    if (iconPixels) {
+        GLFWimage icon = { iconW, iconH, iconPixels };
+        glfwSetWindowIcon(window, 1, &icon);
+        stbi_image_free(iconPixels);
     }
 
     glfwMakeContextCurrent(window);
@@ -59,7 +71,7 @@ int main() {
 
     Input::init(window);
 
-    Scene scene("scene1");
+    Scene scene("scene2");
     Renderer renderer;
     
     std::filesystem::path defaultScenePath = std::filesystem::current_path() /
@@ -72,7 +84,7 @@ int main() {
         printf("Loaded scene from %s\n", defaultScenePath.u8string().c_str());
     }
     else {
-        DemoScene::createScene1(scene);
+        DemoScene::createScene2(scene);
         printf("No saved scene found, created default\n");
         scene.onUpdate(0.0f);
         SceneSerializer::save(scene);
@@ -144,6 +156,17 @@ int main() {
             printf("Scene loaded!\n");
         }
 
+        if (Input::isKeyDown(Key::LeftControl) &&
+            Input::isKeyDown(Key::LeftShift) &&
+            Input::isKeyPressed(Key::F)) {
+
+            CameraComponent* cam = scene.getActiveCamera();
+            if (cam) {
+                Entity* camEntity = cam->getEntity();
+                camEntity->transform.setPosition(editorLayer.editorCamera.position);
+                camEntity->transform.setRotation(editorLayer.editorCamera.rotation);
+            }
+        }
 
         bool isDragging = editorLayer.inspectorFocused &&
             ImGui::IsAnyItemActive() &&

@@ -17,7 +17,12 @@ public:
 	void setMat4(const std::string& uniformName, const glm::mat4& value) const;
 
 	template<typename T>
-	void setSSBO(GLuint binding, GLuint* SSBO, const std::vector<T>& buffer) {
+	void setSSBO(GLuint binding, GLuint* SSBO, const std::string& countUniform, const std::vector<T>& buffer) {
+		if (buffer.empty()) {
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, 0);
+			return;
+		}
+		
 		if (*SSBO == 0)
 			glGenBuffers(1, SSBO);
 
@@ -27,6 +32,8 @@ public:
 			buffer.data(),
 			GL_DYNAMIC_DRAW
 		);
+
+		setInt(countUniform, buffer.size());
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, *SSBO);
 	}

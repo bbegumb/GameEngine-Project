@@ -8,21 +8,14 @@
 
 REGISTER(DirectionalLightComponent);
 
-glm::mat4 DirectionalLightComponent::getLightSpaceMatrix(const CameraComponent* camera) const {
-    glm::vec3 camPos = camera->getEntity()->transform.getPosition();
-    glm::vec3 camForward = camera->getEntity()->transform.forward();
-    glm::vec3 center = camPos + camForward * shadowDistance * 0.5f;
+glm::mat4 DirectionalLightComponent::getLightSpaceMatrix(const glm::vec3& camPos) const {
+    glm::vec3 dir = glm::normalize(getDirection());
+    glm::vec3 lightPos = camPos - dir * 20.0f;
 
-    glm::vec3 lightDir = glm::normalize(getDirection());
-    glm::vec3 lightPos = center - lightDir * shadowFar * 0.5f;
+    glm::mat4 lightView = glm::lookAt(lightPos, camPos, glm::vec3(0, 1, 0));
+    glm::mat4 lightProj = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f);
 
-    glm::mat4 view = glm::lookAt(lightPos, center, owner->transform.up());
-    glm::mat4 proj = glm::ortho(
-        -shadowOrthoSize, shadowOrthoSize,
-        -shadowOrthoSize, shadowOrthoSize,
-        shadowNear, shadowFar
-    );
-    return proj * view;
+    return lightProj * lightView;
 }
 
 glm::vec3 DirectionalLightComponent::getDirection() const {

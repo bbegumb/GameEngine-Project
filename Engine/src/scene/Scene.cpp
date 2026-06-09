@@ -156,7 +156,7 @@ void Scene::onUpdate(float dt) {
 	for (const auto& entity : entities) {
 		for (const auto& component : entity->getComponents()) {
 			if (auto* behaviour = dynamic_cast<BehaviourComponent*>(component.get())) {
-				behaviour->onUpdate(dt);
+				behaviour->tick(dt);
 			}
 		}
 	}

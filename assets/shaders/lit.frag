@@ -24,6 +24,9 @@ struct Material {
     float ambientReflectance;
     float specularReflectance;
     float shininess;
+    float alpha;
+    bool transparent;
+    vec3 emission;
 };
 
 in vec3 vFragPos;
@@ -39,6 +42,8 @@ uniform bool uHasDirectionalLight;
 uniform bool uHasPointLight;
 
 uniform DirectionalLight uDirectionalLight;
+
+uniform int uPointLightCount;
 layout(std430, binding = 0) buffer pointLightBuffer {
     PointLight pointLights[];
 };
@@ -130,11 +135,11 @@ void main()
     if (uHasDirectionalLight)
         lighting += calculateDirectionalLight(uDirectionalLight, uMaterial, normal, viewDir, albedo);
 
-    uint pointLightCount = pointLights.length();
-    for (uint i = 0; i < pointLightCount; i++) {
+    for (uint i = 0; i < uPointLightCount; i++) {
         PointLight pLight = pointLights[i];
         lighting += calculatePointLight(pLight, uMaterial, normal, vFragPos, viewDir, albedo);
     }    
 
-    FragColor = vec4(lighting, 1.0);
+    vec3 finalColor = lighting + uMaterial.emission;
+    FragColor = vec4(finalColor, uMaterial.alpha);
 }

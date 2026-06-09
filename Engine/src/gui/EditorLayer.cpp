@@ -257,10 +257,16 @@ void EditorLayer::ShowInspectorPanel() {
                     if (texture) ImGui::Text(texture->getName().c_str());
 
                     std::string numLabel = std::to_string(i + 1);
-                    ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), & mc->getMaterial(i)->albedo.x);
+                    float alpha = mc->getMaterial(i)->alpha;
+                    ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), &mc->getMaterial(i)->albedo.x);
+                    ImGui::ColorEdit3(("Emission ##" + numLabel).c_str(), &mc->getMaterial(i)->emission.x);
                     ImGui::DragFloat(("Shininess ##" + numLabel).c_str(), &mc->getMaterial(i)->shininess, 1.0f, 1.0f, 512.0f);
-                    ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->ambientReflectance, 0.01f, 0.0f, 1.0f);
-                    ImGui::DragFloat(("Specular Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->specularReflectance, 0.01f, 0.0f, 1.0f);
+                    ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->ambientReflectance, 0.01f, 0.01f, 1.0f);
+                    ImGui::DragFloat(("Specular Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->specularReflectance, 0.01f, 0.01f, 1.0f);
+                    if (ImGui::DragFloat(("Alpha ##" + numLabel).c_str(), &alpha, 0.01f, 0.0f, 1.0f)) {
+                        mc->getMaterial(i)->transparent = alpha < 1.0f;
+                        mc->getMaterial(i)->alpha = alpha;
+                    }
                 }
                 i++;
             }

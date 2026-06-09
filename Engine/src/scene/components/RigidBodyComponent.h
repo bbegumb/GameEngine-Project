@@ -27,6 +27,9 @@ public:
 	void pushToWorld();
 	void pullFromWorld();
 
+	void setLinearDamping(float damping);
+	void setAngularDamping(float damping);
+
 	PhysicsBody* getBody() { return body.get(); }
 	RigidBodyType getType() const { return type; }
 
@@ -41,6 +44,10 @@ private:
 	void rebuild();
 
 	bool forceConvex;
+	bool useTriangleMesh = false;
+	float linearDamping = 0.2f;
+	float angularDamping = 0.1f;
+
 	RigidBodyType type;
 	std::unique_ptr<PhysicsBody> body;
 	std::shared_ptr<PhysicsMaterial> material;
