@@ -97,6 +97,7 @@ FileNode FileManagerPanel::buildTree(const std::filesystem::path& path, int dept
     return node;
 }
 
+// this is FAKE
 void FileManagerPanel::collectChildren(FileNode& node) const {
     (void)node;
 }
