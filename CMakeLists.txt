@@ -65,7 +65,7 @@ add_library(Engine
     Engine/src/controller/TransformController.cpp
     Engine/src/controller/EditorSelectionController.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h" "Engine/src/gui/HierarchyPanel.cpp" "Engine/src/gui/HierarchyPanel.h")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -111,7 +111,7 @@ add_executable(Sandbox
     Sandbox/src/main.cpp
     Sandbox/src/DemoScene.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h" "Engine/src/gui/HierarchyPanel.cpp" "Engine/src/gui/HierarchyPanel.h")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll

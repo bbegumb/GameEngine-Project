@@ -36,3 +36,9 @@ std::vector<Entity*> SceneController::getEntityPointers() {
 
     return result;
 }
+
+Entity* SceneController::createEntityImmediate(const std::string& name) {
+    if (!currentScene) return nullptr;
+    Entity& ref = currentScene->createEntityImmediate(name);
+    return &ref;
+}
