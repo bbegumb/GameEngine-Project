@@ -31,6 +31,7 @@ public:
     void deserialize(const nlohmann::json& j) override {}
 
     const std::string& getName() const { return name; }
+    void setName(const std::string& newName) { name = newName; }
     Scene& getScene() const { return *scene; }
 
     TransformComponent& getTransform();

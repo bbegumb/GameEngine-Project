@@ -32,4 +32,7 @@ public:
 
 	void serialize(nlohmann::json& j) const override;
 	void deserialize(const nlohmann::json& j) override;
+
+    void addDefaultMaterial();
+
 };
