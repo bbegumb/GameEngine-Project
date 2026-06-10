@@ -449,8 +449,9 @@ void EditorLayer::ShowInspectorPanel() {
 
             if (ImGui::DragFloat("Restitution", &res, 0.01f, 0.0f, 1.0f))
                 rb->getMaterial()->setRestitution(res);
-        }
     }
+
+    if (removeRb) selectedEntity->removeComponent<RigidBodyComponent>();
 
     BehaviourComponent* toRemove = nullptr;
     for (auto& component : selectedEntity->getComponents()) {
