@@ -47,6 +47,7 @@ void Scene::openScene(const std::string& sceneName) {
 
 Entity& Scene::createEntity(const std::string& name, Entity* parent) {
 	auto entity = std::unique_ptr<Entity>(new Entity(this, name, parent));
+	entity->setID(nextEntityID++);
 	Entity& ref = *entity;
 
 	entitiesToAdd.push_back(std::move(entity));
@@ -55,6 +56,7 @@ Entity& Scene::createEntity(const std::string& name, Entity* parent) {
 
 Entity& Scene::createEntityImmediate(const std::string& name, Entity* parent) {
 	auto entity = std::unique_ptr<Entity>(new Entity(this, name, parent));
+	entity->setID(nextEntityID++);
 	Entity& ref = *entity;
 	entities.push_back(std::move(entity));
 	return ref;
@@ -185,4 +187,6 @@ void Scene::clear() {
 	entitiesToAdd.clear();
 	entitiesToRemove.clear();
 	activeCamera = nullptr;
+
+	nextEntityID = 0;
 }

@@ -33,7 +33,23 @@ public:
 	PhysicsBody* getBody() { return body.get(); }
 	RigidBodyType getType() const { return type; }
 
+	bool getForceConvex() { return forceConvex; }
+	bool getUseTriangleMesh() { return useTriangleMesh; }
+
 	void setType(RigidBodyType newType);
+	void setForceConvex(bool value) {
+		if (forceConvex == value) return;
+
+		forceConvex = value;
+		recookShape();
+	}
+
+	void setUseTriangleMesh(bool value) {
+		if (useTriangleMesh == value) return;
+
+		useTriangleMesh = value;
+		recookShape();
+	}
 
 	std::shared_ptr<PhysicsMaterial> getMaterial() const { return material; }
 
@@ -43,7 +59,7 @@ private:
 	void recookShape();
 	void rebuild();
 
-	bool forceConvex;
+	bool forceConvex = false;
 	bool useTriangleMesh = false;
 	float linearDamping = 0.2f;
 	float angularDamping = 0.1f;

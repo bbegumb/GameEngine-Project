@@ -15,6 +15,8 @@ using json = nlohmann::json;
 void SceneSerializer::save(const Scene& scene, bool temp) {
     if (scene.isPlaying) return;
 
+    static std::string startSceneConfigName = "start.json";
+
     std::string suffix = temp ? "_temp.json" : ".json";
 
     std::filesystem::path scenePath = std::filesystem::current_path() /
@@ -35,9 +37,18 @@ void SceneSerializer::save(const Scene& scene, bool temp) {
 
     std::ofstream file(scenePath);
     file << j.dump(4);
+
+    if (!temp) {
+        json cfg;
+        cfg["last_scene"] = scene.getSceneName();
+
+        std::ofstream configFile(startSceneConfigName);
+        configFile << cfg.dump(4);
+    } 
 }
 
 bool SceneSerializer::load(Scene& scene, bool temp) {
+    scene.clear();
     scene.isPlaying = false;
 
     std::string suffix = temp ? "_temp.json" : ".json";

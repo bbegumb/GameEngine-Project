@@ -15,6 +15,7 @@ public:
 
     static void createDefaultScene(Scene& scene);
 
+    void renameScene(const std::string& name) { sceneName = name; }
     void newScene(const std::string& sceneName = "scene");
     void openScene(const std::string& sceneName);
 
@@ -46,6 +47,8 @@ private:
 
     float physicsAccumulator = 0.0f;
     float colliderCacheTimer = 0.0f;
+
+    int nextEntityID = 0;
 
     PhysicsWorld physicsWorld;
 

@@ -18,6 +18,8 @@ public:
 
 	template<typename T>
 	void setSSBO(GLuint binding, GLuint* SSBO, const std::string& countUniform, const std::vector<T>& buffer) {
+		setInt(countUniform, buffer.size());
+		
 		if (buffer.empty()) {
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, 0);
 			return;
@@ -32,8 +34,6 @@ public:
 			buffer.data(),
 			GL_DYNAMIC_DRAW
 		);
-
-		setInt(countUniform, buffer.size());
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, *SSBO);
 	}

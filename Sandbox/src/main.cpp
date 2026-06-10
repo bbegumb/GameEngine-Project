@@ -4,6 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <json.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -72,7 +74,17 @@ int main() {
 
     Input::init(window);
 
-    Scene scene("scene2");
+    std::string sceneName = "scene";
+    std::ifstream cfgFile("start.json");
+    nlohmann::json cfgJSON;
+
+    if (cfgFile.is_open()) {
+        cfgJSON = nlohmann::json::parse(cfgFile);
+        if (cfgJSON.contains("last_scene")) sceneName = cfgJSON["last_scene"];
+    }
+    cfgFile.close();
+
+    Scene scene(sceneName);
     Renderer renderer;
     
     std::filesystem::path defaultScenePath = std::filesystem::current_path() /
@@ -85,7 +97,7 @@ int main() {
         printf("Loaded scene from %s\n", defaultScenePath.u8string().c_str());
     }
     else {
-        DemoScene::createScene2(scene);
+        Scene::createDefaultScene(scene);
         printf("No saved scene found, created default\n");
         scene.onUpdate(0.0f);
         SceneSerializer::save(scene);

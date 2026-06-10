@@ -1,6 +1,8 @@
 #pragma once
 
 #include <scene/components/Component.h>
+#include <core/AssetManager.h>
+#include <renderer/Material.h>
 #include <memory>
 
 class Material;
@@ -12,7 +14,7 @@ public:
         else {
             auto shader = AssetManager::getShader("lit");
             auto mat = std::make_shared<Material>(shader);
-            materials.push_back(mat);
+            materials.push_back(std::move(mat));
         }
     }
 

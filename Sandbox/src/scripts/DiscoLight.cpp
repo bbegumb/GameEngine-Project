@@ -2,6 +2,7 @@
 
 #include <scene/Entity.h>
 #include <scene/components/PointLightComponent.h>
+#include <scene/components/MaterialComponent.h>
 #include <cmath>
 
 void DiscoLight::onUpdate(float dt) {
@@ -17,4 +18,14 @@ void DiscoLight::onUpdate(float dt) {
 
     light->color = glm::vec3(r, g, b);
     light->diffuseStrength = intensity;
+
+    auto matc = owner->getComponent<MaterialComponent>();
+    if (matc) {
+        int i = 0;
+        for (; i < matc->getMaterialCount(); i++) {
+            auto mat = matc->getMaterial(i);
+            mat->albedo = glm::vec3(r, g, b);
+            mat->emission = glm::vec3(r, g, b);
+        }
+    }
 }

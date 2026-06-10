@@ -54,8 +54,8 @@ std::shared_ptr<Texture> AssetManager::getTexture(const std::string& name) {
     auto it = textures.find(name);
     if (it != textures.end())
         return it->second;
-    std::string model_path = (std::filesystem::current_path() / "assets" / "models").string();
-    auto tex = std::make_shared<Texture>(model_path + name);
+    std::string model_path = (std::filesystem::current_path() / "assets" / "models" / name).string();
+    auto tex = std::make_shared<Texture>(model_path);
     tex->setName(name);
     textures[name] = tex;
     return tex;
