@@ -4,6 +4,17 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+static std::string camelToWords(const std::string& s) {
+    std::string result;
+    for (int i = 0; i < s.size(); i++) {
+        if (std::isupper(s[i]) && i > 0)
+            result += ' ';
+        result += s[i];
+    }
+    result[0] = std::toupper(result[0]);
+    return result;
+}
+
 enum class PropertyType { Bool, Char, Int, Float, Double, String, Vec2, Vec3, Vec4, Mat3, Mat4 };
 
 struct Property {
@@ -15,7 +26,7 @@ struct Property {
 class PropertyHolder {
 public:
     void registerProperty(const std::string& name, PropertyType type, void* ptr) {
-        properties.push_back({ name, type, ptr });
+        properties.push_back({ camelToWords(name), type, ptr});
     }
 
     const std::vector<Property>& getProperties() const { return properties; }

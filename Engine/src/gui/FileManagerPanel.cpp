@@ -207,7 +207,7 @@ void FileManagerPanel::refreshScripts() {
 std::vector<std::string> FileManagerPanel::getScriptNames() const {
     std::vector<std::string> names;
     for (auto& item : scriptItems)
-        names.push_back(item.path.stem().string());
+        names.push_back(item.path.stem().string() + item.path.extension().string());
     return names;
 }
 
@@ -560,7 +560,7 @@ void FileManagerPanel::drawItem(FileNode& node) {
             pendingNavigate = node.path;
         }
         else if (isSceneFile(node.path) && onOpenScene) {
-            onOpenScene(node.path.string());
+            onOpenScene(node.path.stem().string());
         }
     }
 
@@ -613,7 +613,7 @@ void FileManagerPanel::drawContextMenuItem(FileNode& node) {
         }
         else if (isSceneFile(node.path)) {
             if (ImGui::MenuItem("Open Scene") && onOpenScene)
-                onOpenScene(node.path.string());
+                onOpenScene(node.path.stem().string());
         }
         else if (isMeshFile(node.path)) {
             if (ImGui::MenuItem("Load Mesh")) {

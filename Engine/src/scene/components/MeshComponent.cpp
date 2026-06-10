@@ -9,15 +9,6 @@
 
 REGISTER(MeshComponent);
 
-bool MeshComponent::onAttach() {
-    auto* matc = owner->getComponent<MaterialComponent>();
-    if (!matc) {
-        owner->addComponent<MaterialComponent>();
-    }
-
-    return true;
-}
-
 void MeshComponent::serialize(nlohmann::json& j) const {
     if (!mesh) j["mesh"] = "";
     else {

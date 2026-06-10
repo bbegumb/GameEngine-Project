@@ -43,7 +43,8 @@ void EditorLayer::initFileManager(const std::string& rootAssetsPath, const std::
     fileManager.init(rootAssetsPath);
     fileManager.initScriptsPath(scriptsPath);
 
-    fileManager.onOpenScene = [this](const std::string& path) {
+    fileManager.onOpenScene = [this](const std::string& sceneName) {
+        SceneController::getScene()->newScene(sceneName);
         if (onLoad) onLoad();
         };
 
@@ -110,12 +111,13 @@ void EditorLayer::ShowDockspace() {
 }
 
 void EditorLayer::ShowMenuBar() {
+    static bool openNewScene = false;
+
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New Scene")) {
-                EntityController::setSelectedEntity(nullptr);
-                SceneController::newScene();
-            }
+            if (ImGui::MenuItem("New Scene")) 
+                openNewScene = true;
+
             if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {
                 if (onLoad) onLoad();
             }
@@ -160,6 +162,44 @@ void EditorLayer::ShowMenuBar() {
 
         ImGui::EndMainMenuBar();
     }
+
+    static bool focusName = false;
+
+    if (openNewScene) {
+        ImGui::OpenPopup("##new_scene");
+        openNewScene = false;
+        focusName = true;
+    }
+
+    if (ImGui::BeginPopupModal("##new_scene", nullptr,
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
+
+        static char sceneName[128] = "";
+        ImGui::Text("Scene name");
+        ImGui::Separator();
+        ImGui::SetNextItemWidth(260.0f);
+        if (focusName) {
+            ImGui::SetKeyboardFocusHere();
+            focusName = false;
+        }
+        bool confirm = ImGui::InputText("##name", sceneName, sizeof(sceneName),
+            ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::Spacing();
+        if (ImGui::Button("Create", ImVec2(126, 0)) || confirm) {
+            if (strlen(sceneName) > 0) {
+                EntityController::setSelectedEntity(nullptr);
+                SceneController::newScene(sceneName);
+                sceneName[0] = '\0';
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(126, 0))) {
+            sceneName[0] = '\0';
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 }
 
 void EditorLayer::ShowStatsPanel() {
@@ -194,7 +234,8 @@ void EditorLayer::ShowHierarchyPanel() {
 
            bool selected = (EntityController::getSelectedEntity() == entity);
 
-           if (ImGui::Selectable(EntityController::getName(entity).c_str(), selected)) {
+           if (ImGui::Selectable((EntityController::getName(entity)
+               + "##" + std::to_string(entity->getID())).c_str(), selected)) {
                EntityController::setSelectedEntity(entity);
        }
     }
@@ -316,18 +357,29 @@ void EditorLayer::ShowInspectorPanel() {
             std::string name = mesh->mesh ? mesh->mesh->getName() : "None";
             ImGui::Text("Mesh: %s", name.c_str());
             ImGui::SameLine();
-            ImGui::TextDisabled("(drop .obj/.fbx/.gltf here)");
+            ImGui::TextDisabled("(drop .obj here)");
 
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* pl =
                     ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
                     std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
                     std::string filename = std::filesystem::path(path).filename().string();
-                    auto loadedMesh = AssetManager::getMesh(filename);
-                    if (loadedMesh)
-                        mesh->mesh = loadedMesh;
+                    auto loadedModel = AssetManager::getModel(filename);
+                    if (loadedModel.mesh)
+                        mesh->mesh = loadedModel.mesh;
+                    auto* matc = selectedEntity->getComponent<MaterialComponent>();
+                    if (matc) matc->materials = loadedModel.materials;
                 }
                 ImGui::EndDragDropTarget();
+            }
+
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::BeginCombo("##primitives", "Set primitive...")) {
+                for (auto& prim : { "cube", "sphere", "plane" }) {
+                    if (ImGui::Selectable(prim))
+                        mesh->mesh = AssetManager::getMesh(prim);
+                }
+                ImGui::EndCombo();
             }
         }
     }
@@ -340,6 +392,18 @@ void EditorLayer::ShowInspectorPanel() {
                 rb->setType(static_cast<RigidBodyType>(current));
             }
 
+            bool forceConvex = rb->getForceConvex();
+            bool useTriangle = rb->getUseTriangleMesh();
+
+            if (ImGui::Checkbox("Force Covex", &forceConvex)) {
+                rb->setForceConvex(forceConvex);
+            }
+
+            if (ImGui::Checkbox("Use Triangle", &useTriangle)) {
+                rb->setUseTriangleMesh(useTriangle);
+            }
+
+            ImGui::Separator();
             float sf = rb->getMaterial()->staticFriction;
             float df = rb->getMaterial()->dynamicFriction;
             float res = rb->getMaterial()->restitution;
@@ -364,35 +428,37 @@ void EditorLayer::ShowInspectorPanel() {
             name = name.substr(6);
         if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
             for (auto& prop : behaviour->getProperties()) {
+                int compID = component->getID();
+                std::string propName = prop.name + "##" + std::to_string(compID);
                 switch (prop.type) {
                 case PropertyType::Float:
-                    ImGui::DragFloat(prop.name.c_str(), static_cast<float*>(prop.ptr), 0.1f);
+                    ImGui::DragFloat(propName.c_str(), static_cast<float*>(prop.ptr), 0.1f);
                     break;
                 case PropertyType::Double: {
                     float temp = static_cast<float>(*static_cast<double*>(prop.ptr));
-                    if (ImGui::DragFloat(prop.name.c_str(), &temp, 0.1f))
+                    if (ImGui::DragFloat(propName.c_str(), &temp, 0.1f))
                         *static_cast<double*>(prop.ptr) = static_cast<double>(temp);
                     break;
                 }
                 case PropertyType::Int:
-                    ImGui::DragInt(prop.name.c_str(), static_cast<int*>(prop.ptr));
+                    ImGui::DragInt(propName.c_str(), static_cast<int*>(prop.ptr));
                     break;
                 case PropertyType::Bool:
-                    ImGui::Checkbox(prop.name.c_str(), static_cast<bool*>(prop.ptr));
+                    ImGui::Checkbox(propName.c_str(), static_cast<bool*>(prop.ptr));
                     break;
                 case PropertyType::Vec2:
-                    ImGui::DragFloat2(prop.name.c_str(), &static_cast<glm::vec2*>(prop.ptr)->x, 0.1f);
+                    ImGui::DragFloat2(propName.c_str(), &static_cast<glm::vec2*>(prop.ptr)->x, 0.1f);
                     break;
                 case PropertyType::Vec3:
-                    ImGui::DragFloat3(prop.name.c_str(), &static_cast<glm::vec3*>(prop.ptr)->x, 0.1f);
+                    ImGui::DragFloat3(propName.c_str(), &static_cast<glm::vec3*>(prop.ptr)->x, 0.1f);
                     break;
                 case PropertyType::Vec4:
-                    ImGui::DragFloat4(prop.name.c_str(), &static_cast<glm::vec4*>(prop.ptr)->x, 0.1f);
+                    ImGui::DragFloat4(propName.c_str(), &static_cast<glm::vec4*>(prop.ptr)->x, 0.1f);
                     break;
                 case PropertyType::Mat3: {
                     auto* m = static_cast<glm::mat3*>(prop.ptr);
                     ImGui::Text("%s", prop.name.c_str());
-                    std::string id = "##" + prop.name;
+                    std::string id = "##" + propName;
                     ImGui::DragFloat3((id + "0").c_str(), &(*m)[0][0], 0.1f);
                     ImGui::DragFloat3((id + "1").c_str(), &(*m)[1][0], 0.1f);
                     ImGui::DragFloat3((id + "2").c_str(), &(*m)[2][0], 0.1f);
@@ -401,7 +467,7 @@ void EditorLayer::ShowInspectorPanel() {
                 case PropertyType::Mat4: {
                     auto* m = static_cast<glm::mat4*>(prop.ptr);
                     ImGui::Text("%s", prop.name.c_str());
-                    std::string id = "##" + prop.name;
+                    std::string id = "##" + propName;
                     ImGui::DragFloat4((id + "0").c_str(), &(*m)[0][0], 0.1f);
                     ImGui::DragFloat4((id + "1").c_str(), &(*m)[1][0], 0.1f);
                     ImGui::DragFloat4((id + "2").c_str(), &(*m)[2][0], 0.1f);
@@ -420,8 +486,11 @@ void EditorLayer::ShowInspectorPanel() {
 
     if (ImGui::BeginPopup("AddComponentPopup")) {
         if (!selectedEntity->getComponent<MeshComponent>()) {
-            if (ImGui::MenuItem("Mesh"))
+            if (ImGui::MenuItem("Mesh")) {
+                if (!selectedEntity->getComponent<MaterialComponent>())
+                    selectedEntity->addComponent<MaterialComponent>();
                 selectedEntity->addComponent<MeshComponent>();
+            }
         }
         if (!selectedEntity->getComponent<MaterialComponent>()) {
             if (ImGui::MenuItem("Material"))
@@ -453,6 +522,10 @@ void EditorLayer::ShowInspectorPanel() {
         else {
             if (ImGui::BeginMenu("Script")) {
                 for (auto& scriptName : scriptNames) {
+                    size_t dot = scriptName.find_last_of('.');
+                    if (dot == std::string::npos) continue;
+                    if (scriptName.substr(dot) != ".h") continue;
+
 					scriptName = scriptName.substr(0, scriptName.find_last_of('.'));
 					if (ImGui::MenuItem(scriptName.c_str())) {
 						ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());

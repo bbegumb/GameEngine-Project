@@ -16,6 +16,12 @@ public:
 
 	void serialize(nlohmann::json& j) const override {}
 	void deserialize(const nlohmann::json& j) override {}
+
+	int getID() const { return ID; }
+
 protected:
+
+	void setID(int newID) { ID = newID; }
+	int ID;
 	Entity* owner = nullptr;
 };

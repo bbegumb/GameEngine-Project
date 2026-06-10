@@ -25,6 +25,8 @@ public:
 
     ~Entity() = default;
 
+    int getID() const { return ID; }
+
     void serialize(nlohmann::json& j) const override;
     void deserialize(const nlohmann::json& j) override {}
 
@@ -48,6 +50,7 @@ public:
         component->owner = this;
 
         T* rawPtr = component.get();
+        static_cast<Component*>(rawPtr)->setID(nextCompID++);
         components.push_back(std::move(component));
 
         if (!rawPtr->onAttach()) {
@@ -68,6 +71,7 @@ public:
         component->owner = this;
 
         T* rawPtr = component.get();
+        static_cast<Component*>(rawPtr)->setID(nextCompID++);
         components.push_back(std::move(component));
         
         return *rawPtr;
@@ -125,6 +129,12 @@ private:
         const glm::vec3& scale, Entity* parent = nullptr);
 
 private:
+
+    void setID(int newID) { ID = newID; }
+    int ID;
+
+    int nextCompID = 0;
+
     Scene* scene = nullptr;
     std::string name;
     std::vector<std::unique_ptr<Component>> components;
