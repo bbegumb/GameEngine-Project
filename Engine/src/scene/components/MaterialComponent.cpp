@@ -91,3 +91,8 @@ void MaterialComponent::deserialize(const nlohmann::json& j) {
     auto shader = AssetManager::getShader("lit");
     materials.push_back(std::make_shared<Material>(shader));
 }
+
+void MaterialComponent::addDefaultMaterial() {
+    auto shader = AssetManager::getShader("lit");
+    materials.push_back(std::make_shared<Material>(shader));
+}
