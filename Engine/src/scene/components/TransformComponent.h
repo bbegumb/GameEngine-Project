@@ -42,6 +42,7 @@ public:
 	glm::vec3 getWorldScale() const;
 
 	TransformComponent* getParent() const { return parent; }
+	std::vector<TransformComponent*> getChildren() const { return children; }
 
 	std::function<bool()> onBeforeReparent = nullptr;
 

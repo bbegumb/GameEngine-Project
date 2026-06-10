@@ -66,6 +66,11 @@ void Scene::removeEntity(Entity* entity) {
 	if (onEntityRemoved)
 		onEntityRemoved(entity);
 	entitiesToRemove.push_back(entity);
+
+	for (auto child : entity->transform.getChildren()) {
+		if (onEntityRemoved) onEntityRemoved(child->getEntity());
+		entitiesToRemove.push_back(child->getEntity());
+	}
 }
 
 void Scene::removeEntity(const std::string& name) {
@@ -74,6 +79,11 @@ void Scene::removeEntity(const std::string& name) {
 			if (onEntityRemoved)
 				onEntityRemoved(it->get());
 			entitiesToRemove.push_back(it->get());
+
+			for (auto child : it->get()->transform.getChildren()) {
+				if (onEntityRemoved) onEntityRemoved(child->getEntity());
+				entitiesToRemove.push_back(child->getEntity());
+			}
 			return;
 		}
 	}
