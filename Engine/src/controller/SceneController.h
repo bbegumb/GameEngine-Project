@@ -14,6 +14,7 @@ public:
     static void deleteEntity(Entity* entity);
     static const std::vector<std::unique_ptr<Entity>>& getEntities();
     static std::vector<Entity*> getEntityPointers();
+    static Entity* createEntityImmediate(const std::string& name);
 private:
     static Scene* currentScene;
 };

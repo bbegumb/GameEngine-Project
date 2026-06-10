@@ -37,6 +37,23 @@ void EditorLayer::SetScene(Scene* scene, std::function<void()> onSave,
     this->onExit = onExit;
     this->onPlay = onPlay;
     this->onStop = onStop;
+
+    hierarchyPanel.onCreateEntity = [](const std::string& name) {
+        SceneController::createEntityImmediate(name);
+        };
+    hierarchyPanel.onEntitySelected = [](Entity* e) {
+        EntityController::setSelectedEntity(e);
+        };
+    hierarchyPanel.getSelectedEntity = []() -> Entity* {
+        return EntityController::getSelectedEntity();
+        };
+    hierarchyPanel.onRenameEntity = [](Entity* e, const std::string& newName) {
+        e->setName(newName);
+        };
+    hierarchyPanel.onDeleteEntity = [](Entity* e) {
+        SceneController::deleteEntity(e);
+        EntityController::clearSelectedEntity();
+        };
 }
 
 void EditorLayer::initFileManager(const std::string& rootAssetsPath, const std::string& scriptsPath) {
@@ -45,15 +62,15 @@ void EditorLayer::initFileManager(const std::string& rootAssetsPath, const std::
 
     fileManager.onOpenScene = [this](const std::string& path) {
         if (onLoad) onLoad();
-        };
+    };
 
     fileManager.onDropMesh = [](const std::string& path) {
         AssetManager::getMesh(std::filesystem::path(path).filename().string());
-        };
+    };
 
     fileManager.onDropTexture = [](const std::string& path) {
         AssetManager::getTexture(std::filesystem::path(path).filename().string());
-        };
+    };
 }
 
 void EditorLayer::OnUIRender() {
@@ -181,25 +198,7 @@ void EditorLayer::ShowStatsPanel() {
 }
 
 void EditorLayer::ShowHierarchyPanel() {
-    ImGui::Begin("Hierarchy", &showHierarchy);
-
-    if (ImGui::Button("Add Entity")) {
-            SceneController::createEntity("New Entity");
-    }
-    
-    ImGui::Separator();
-    
-    for (Entity* entity : SceneController::getEntityPointers()) {
-           if (!entity) continue;
-
-           bool selected = (EntityController::getSelectedEntity() == entity);
-
-           if (ImGui::Selectable(EntityController::getName(entity).c_str(), selected)) {
-               EntityController::setSelectedEntity(entity);
-       }
-    }
-
-    ImGui::End();
+    hierarchyPanel.show(SceneController::getScene(), &showHierarchy);
 }
 
 void EditorLayer::ShowInspectorPanel() {
@@ -214,6 +213,17 @@ void EditorLayer::ShowInspectorPanel() {
     }
 
     ImGui::Text("Selected Entity: %s", selectedEntity->getName().c_str());
+    ImGui::SameLine();
+    ImGui::TextDisabled("(drop script here)");
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* pl =
+            ImGui::AcceptDragDropPayload(FileManagerPanel::scriptPayload)) {
+            std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
+            std::string scriptName = std::filesystem::path(path).stem().string();
+            ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
+        }
+        ImGui::EndDragDropTarget();
+    }
     ImGui::Separator();
 
     auto& transform = selectedEntity->transform;
@@ -253,17 +263,32 @@ void EditorLayer::ShowInspectorPanel() {
         }
     }
 
+    auto componentHeader = [](const char* label, bool* removeFlag,
+        ImGuiTreeNodeFlags extraFlags = 0) -> bool {
+            bool open = ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_AllowOverlap | extraFlags);
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 20.0f);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 0.6f));
+            std::string btnId = std::string("X##rm") + label;
+            if (ImGui::SmallButton(btnId.c_str())) *removeFlag = true;
+            ImGui::PopStyleColor(2);
+            return open;
+     };
+
+    bool removeDL = false;
     if (auto* dl = selectedEntity->getComponent<DirectionalLightComponent>()) {
-        if (ImGui::CollapsingHeader("Directional Light")) {
+        if (componentHeader("Directional Light", &removeDL)) {
             ImGui::ColorEdit3("Color", &dl->color.x);
             ImGui::DragFloat("Ambient", &dl->ambientStrength, 0.01f, 0.0f, 1.0f);
             ImGui::DragFloat("Diffuse", &dl->diffuseStrength, 0.01f, 0.0f, 5.0f);
             ImGui::DragFloat("Specular", &dl->specularStrength, 0.01f, 0.0f, 5.0f);
         }
     }
+    if (removeDL) selectedEntity->removeComponent<DirectionalLightComponent>();
 
+    bool removePL = false;
     if (auto* pl = selectedEntity->getComponent<PointLightComponent>()) {
-        if (ImGui::CollapsingHeader("Point Light")) {
+        if (componentHeader("Point Light", &removePL)) {
             ImGui::ColorEdit3("Color", &pl->color.x);
             ImGui::DragFloat("Ambient", &pl->ambientStrength, 0.01f, 0.0f, 1.0f);
             ImGui::DragFloat("Diffuse", &pl->diffuseStrength, 0.01f, 0.0f, 5.0f);
@@ -273,82 +298,86 @@ void EditorLayer::ShowInspectorPanel() {
             ImGui::DragFloat("Quadratic", &pl->quadratic, 0.001f, 0.0f, 1.0f);
         }
     }
+    if (removePL) selectedEntity->removeComponent<PointLightComponent>();
 
+    bool removeMat = false;
     if (auto* mc = selectedEntity->getComponent<MaterialComponent>()) {
-        if (ImGui::CollapsingHeader("Material")) {
+        if (componentHeader("Material", &removeMat)) {
             int i = 0;
             while (mc->getMaterial(i)) {
-                if (mc->getMaterial(i)) {
-                    auto texture = mc->getMaterial(i)->diffuseTexture;
-                    if (texture) ImGui::Text(texture->getName().c_str());
-                    auto* mat = mc->getMaterial(i);
-
-                    std::string numLabel = std::to_string(i + 1);
-                    std::string texName = texture ? texture->getName() : "None  (drop image here)";
-                    ImGui::Text("Texture %d: %s", i + 1, texName.c_str());
-
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* pl =
-                            ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
-                            std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
-                            std::string filename = std::filesystem::path(path).filename().string();
-                            auto loadedTex = AssetManager::getTexture(filename);
-                            if (loadedTex)
-                                mat->diffuseTexture = loadedTex;
-                        }
-                        ImGui::EndDragDropTarget();
+                auto* mat = mc->getMaterial(i);
+                auto texture = mat->diffuseTexture;
+                std::string numLabel = std::to_string(i + 1);
+                std::string texName = texture ? texture->getName() : "None  (drop image here)";
+                ImGui::Text("Texture %d: %s", i + 1, texName.c_str());
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload =
+                        ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
+                        std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+                        std::string filename = std::filesystem::path(path).filename().string();
+                        auto loadedTex = AssetManager::getTexture(filename);
+                        if (loadedTex) mat->diffuseTexture = loadedTex;
                     }
-
-                    ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), & mc->getMaterial(i)->albedo.x);
-                    ImGui::DragFloat(("Shininess ##" + numLabel).c_str(), &mc->getMaterial(i)->shininess, 1.0f, 1.0f, 512.0f);
-                    ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->ambientReflectance, 0.01f, 0.0f, 1.0f);
-                    ImGui::DragFloat(("Specular Ref ##" + numLabel).c_str(), &mc->getMaterial(i)->specularReflectance, 0.01f, 0.0f, 1.0f);
+                    ImGui::EndDragDropTarget();
                 }
+                ImGui::ColorEdit3(("Albedo ##" + numLabel).c_str(), &mat->albedo.x);
+                ImGui::DragFloat(("Shininess ##" + numLabel).c_str(), &mat->shininess, 1.0f, 1.0f, 512.0f);
+                ImGui::DragFloat(("Ambient Ref ##" + numLabel).c_str(), &mat->ambientReflectance, 0.01f, 0.0f, 1.0f);
+                ImGui::DragFloat(("Specular Ref ##" + numLabel).c_str(), &mat->specularReflectance, 0.01f, 0.0f, 1.0f);
+                ImGui::Separator();
                 i++;
+            }
+            if (ImGui::Button("+ Add Material Slot")) {
+                auto shader = AssetManager::getShader("lit");
+                mc->materials.push_back(std::make_shared<Material>(shader));
             }
         }
     }
+    if (removeMat) selectedEntity->removeComponent<MaterialComponent>();
 
+    bool removeMesh = false;
     if (auto* mesh = selectedEntity->getComponent<MeshComponent>()) {
-        if (ImGui::CollapsingHeader("Mesh")) {
+        if (componentHeader("Mesh", &removeMesh)) {
             std::string name = mesh->mesh ? mesh->mesh->getName() : "None";
             ImGui::Text("Mesh: %s", name.c_str());
             ImGui::SameLine();
             ImGui::TextDisabled("(drop .obj/.fbx/.gltf here)");
-
             if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* pl =
+                if (const ImGuiPayload* payload =
                     ImGui::AcceptDragDropPayload(FileManagerPanel::payload)) {
-                    std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
+                    std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
                     std::string filename = std::filesystem::path(path).filename().string();
                     auto loadedMesh = AssetManager::getMesh(filename);
-                    if (loadedMesh)
-                        mesh->mesh = loadedMesh;
+                    if (loadedMesh) mesh->mesh = loadedMesh;
                 }
                 ImGui::EndDragDropTarget();
             }
         }
     }
+    if (removeMesh) selectedEntity->removeComponent<MeshComponent>();
 
+    bool removeRb = false;
     if (auto* rb = selectedEntity->getComponent<RigidBodyComponent>()) {
-        if (ImGui::CollapsingHeader("RigidBody")) {
+        if (componentHeader("RigidBody", &removeRb)) {
             const char* types[] = { "Static", "Dynamic", "Kinematic" };
             int current = rb->getType();
-            if (ImGui::Combo("Type", &current, types, 3)) {
+            if (ImGui::Combo("Type", &current, types, 3))
                 rb->setType(static_cast<RigidBodyType>(current));
-            }
         }
     }
+    if (removeRb) selectedEntity->removeComponent<RigidBodyComponent>();
 
+    BehaviourComponent* toRemove = nullptr;
     for (auto& component : selectedEntity->getComponents()) {
         auto* behaviour = dynamic_cast<BehaviourComponent*>(component.get());
         if (!behaviour) continue;
 
         ImGui::Separator();
         std::string name = typeid(*behaviour).name();
-        if (name.find("class ") == 0)
-            name = name.substr(6);
-        if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (name.find("class ") == 0) name = name.substr(6);
+
+        bool removeBeh = false;
+        if (componentHeader(name.c_str(), &removeBeh, ImGuiTreeNodeFlags_DefaultOpen)) {
             for (auto& prop : behaviour->getProperties()) {
                 switch (prop.type) {
                 case PropertyType::Float:
@@ -399,7 +428,9 @@ void EditorLayer::ShowInspectorPanel() {
                 }
             }
         }
+        if (removeBeh) { toRemove = behaviour; break; }
     }
+    if (toRemove) selectedEntity->removeComponent<BehaviourComponent>();
     ImGui::Separator();
     if (ImGui::Button("Add Component"))
         ImGui::OpenPopup("AddComponentPopup");
@@ -410,8 +441,11 @@ void EditorLayer::ShowInspectorPanel() {
                 selectedEntity->addComponent<MeshComponent>();
         }
         if (!selectedEntity->getComponent<MaterialComponent>()) {
-            if (ImGui::MenuItem("Material"))
+            if (ImGui::MenuItem("Material")) {
                 selectedEntity->addComponent<MaterialComponent>();
+                if (auto* mc = selectedEntity->getComponent<MaterialComponent>())
+                    mc->addDefaultMaterial();
+            }
         }
         if (!selectedEntity->getComponent<CameraComponent>()) {
             if (ImGui::MenuItem("Camera"))
@@ -439,10 +473,10 @@ void EditorLayer::ShowInspectorPanel() {
         else {
             if (ImGui::BeginMenu("Script")) {
                 for (auto& scriptName : scriptNames) {
-					scriptName = scriptName.substr(0, scriptName.find_last_of('.'));
-					if (ImGui::MenuItem(scriptName.c_str())) {
-						ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
-					}
+                    scriptName = scriptName.substr(0, scriptName.find_last_of('.'));
+                    if (ImGui::MenuItem(scriptName.c_str())) {
+                        ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
+                    }
                 }
                 ImGui::EndMenu();
             }

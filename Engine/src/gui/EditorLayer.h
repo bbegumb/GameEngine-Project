@@ -5,6 +5,7 @@
 #include <functional>
 #include "EditorCamera.h"
 #include <gui/FileManagerPanel.h>
+#include <gui/HierarchyPanel.h>
 
 class Scene;
 class Entity;
@@ -56,4 +57,6 @@ private:
     bool showFileManager = true;
 
     FileManagerPanel fileManager;
+    HierarchyPanel hierarchyPanel;
+
 };
