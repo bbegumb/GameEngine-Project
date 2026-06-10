@@ -424,7 +424,7 @@ void EditorLayer::ShowInspectorPanel() {
             int current = rb->getType();
             if (ImGui::Combo("Type", &current, types, 3))
                 rb->setType(static_cast<RigidBodyType>(current));
-            }
+            
 
             bool forceConvex = rb->getForceConvex();
             bool useTriangle = rb->getUseTriangleMesh();
@@ -449,6 +449,7 @@ void EditorLayer::ShowInspectorPanel() {
 
             if (ImGui::DragFloat("Restitution", &res, 0.01f, 0.0f, 1.0f))
                 rb->getMaterial()->setRestitution(res);
+        }
     }
 
     if (removeRb) selectedEntity->removeComponent<RigidBodyComponent>();
