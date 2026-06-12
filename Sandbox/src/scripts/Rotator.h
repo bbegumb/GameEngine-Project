@@ -1,10 +1,15 @@
 #pragma once
 
-#include <scene/components/BehaviourComponent.h>
+#include <core/Script.h>
 
-class Rotator : public BehaviourComponent {
-	float timeElapsed = 0.0f;
-	float x = 0.0f, y = 0.0f, z = 0.0f;
+SCRIPT(Rotator) {
 
-	void onUpdate(float dt) override;
+public:
+    SERIALIZE(float, speed, 5.0f);
+    SERIALIZE(glm::vec3, axis, glm::vec3(0, 1, 0));
+    SERIALIZE(bool, enabled, true);
+
+    void onUpdate(float dt) override;
 };
+
+END_SCRIPT(Rotator);

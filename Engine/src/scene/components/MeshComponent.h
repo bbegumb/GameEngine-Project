@@ -12,4 +12,7 @@ public:
 	std::shared_ptr<Mesh> mesh;
 
 	void setMesh(std::shared_ptr<Mesh> mesh) { this->mesh = mesh; }
+
+	void serialize(nlohmann::json& j) const override;
+	void deserialize(const nlohmann::json& j) override;
 };
