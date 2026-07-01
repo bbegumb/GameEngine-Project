@@ -3,12 +3,15 @@
 #include "imgui.h"
 
 #include "ImGuizmo.h"
+
 #include <core/Input.h>
 #include <gui/Gizmohelp.h>
+
 #include <controller/SceneController.h>
 #include <controller/EntityController.h>
 #include <controller/TransformController.h>
 #include <controller/EditorSelectionController.h>
+
 #include <scene/Scene.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
@@ -19,13 +22,19 @@
 #include <scene/components/MaterialComponent.h>
 #include <scene/components/MeshComponent.h>
 #include <scene/components/RigidBodyComponent.h>
+
 #include <persistance/ComponentFactory.h>
+#include <persistance/Archive.h>
+
+#include <physics/PhysicsMaterial.h>
+
 #include <renderer/Texture.h>
 #include <renderer/Material.h>
 #include <renderer/Mesh.h>
+
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <cmath>
 #include <filesystem>
 
 void EditorLayer::SetScene(Scene* scene, std::function<void()> onSave,
@@ -262,7 +271,7 @@ void EditorLayer::ShowInspectorPanel() {
             ImGui::AcceptDragDropPayload(FileManagerPanel::scriptPayload)) {
             std::string path(static_cast<const char*>(pl->Data), pl->DataSize - 1);
             std::string scriptName = std::filesystem::path(path).stem().string();
-            ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
+            ComponentFactory::create(scriptName, *selectedEntity, Archive());
         }
         ImGui::EndDragDropTarget();
     }
@@ -571,7 +580,7 @@ void EditorLayer::ShowInspectorPanel() {
 
 					scriptName = scriptName.substr(0, scriptName.find_last_of('.'));
 					if (ImGui::MenuItem(scriptName.c_str())) {
-						ComponentFactory::create(scriptName, *selectedEntity, nlohmann::json());
+						ComponentFactory::create(scriptName, *selectedEntity, Archive());
 					}
                 }
                 ImGui::EndMenu();

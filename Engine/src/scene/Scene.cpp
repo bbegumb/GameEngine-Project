@@ -1,11 +1,16 @@
-#include "Scene.h"
+#include <scene/Scene.h>
 
 #include <core/Input.h>
 #include <scene/Entity.h>
+#include <scene/components/CameraComponent.h>
 #include <scene/components/DirectionalLightComponent.h>
 #include <scene/components/BehaviourComponent.h>
 #include <scene/components/RigidBodyComponent.h>
+
+#include <physics/PhysicsWorld.h>
+
 #include <persistance/SceneSerializer.h>
+#include <persistance/Archive.h>
 
 void Scene::createDefaultScene(Scene& scene) {
 	Entity& cameraEntity = scene.createEntityImmediate("Main Camera");
@@ -23,12 +28,13 @@ void Scene::createDefaultScene(Scene& scene) {
 }
 
 Scene::Scene(const std::string& sceneName) : sceneName(sceneName) {
-	physicsWorld.init();
+	physicsWorld = std::make_unique<PhysicsWorld>();
+	physicsWorld->init();
 }
 
 Scene::~Scene() {
 	entities.clear();
-	physicsWorld.shutdown();
+	physicsWorld->shutdown();
 }
 
 void Scene::newScene(const std::string& sceneName) {
@@ -120,18 +126,6 @@ void Scene::onUpdate(float dt) {
 	removeDeadEntities();
 	addNewEntities();
 
-	if (Input::isKeyPressed(Key::F5)) {
-		if (!isPlaying) {
-			SceneSerializer::save(*this, "_temp.json");
-			isPlaying = true;
-		}
-		else {
-			isPlaying = false;
-			clear();
-			SceneSerializer::load(*this, "_temp.json");
-		}
-	}
-
 	if (!isPlaying) return;
 
 	if (dt <= 0.0f || dt > 0.1f)
@@ -142,7 +136,7 @@ void Scene::onUpdate(float dt) {
 	colliderCacheTimer += dt;
 
 	if (colliderCacheTimer > 1.0f) {
-		physicsWorld.cleanShapeCache();
+		physicsWorld->cleanShapeCache();
 		colliderCacheTimer -= 1.0f;
 	}
 
@@ -155,7 +149,7 @@ void Scene::onUpdate(float dt) {
 		}
 
 	while (physicsAccumulator >= fixedPhysicsStep) {
-		physicsWorld.step(fixedPhysicsStep);
+		physicsWorld->step(fixedPhysicsStep);
 		physicsAccumulator -= fixedPhysicsStep;
 	}
 
@@ -173,6 +167,8 @@ void Scene::onUpdate(float dt) {
 		}
 	}
 }
+
+PhysicsWorld& Scene::getPhysicsWorld() { return *physicsWorld; }
 
 void Scene::addNewEntities() {
 	for (auto& entity : entitiesToAdd)

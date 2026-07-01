@@ -1,10 +1,12 @@
-#include "DirectionalLightComponent.h"
+#include <scene/components/DirectionalLightComponent.h>
 
 #include <glm/glm.hpp>
-#include <scene/Entity.h>
-#include <persistance/ComponentFactory.h>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include <scene/components/CameraComponent.h>
+#include <scene/Entity.h>
+
+#include <persistance/ComponentFactory.h>
+#include <persistance/Archive.h>
 
 REGISTER(DirectionalLightComponent);
 
@@ -22,28 +24,26 @@ glm::vec3 DirectionalLightComponent::getDirection() const {
     return owner->transform.forward();
 }
 
-void DirectionalLightComponent::serialize(nlohmann::json& j) const {
-    const float* col = glm::value_ptr(color);
-    j["color"] = std::vector<float>(col, col + 3);
-    j["ambientStrength"] = ambientStrength;
-    j["diffuseStrength"] = diffuseStrength;
-    j["specularStrength"] = specularStrength;
+void DirectionalLightComponent::serialize(Archive& arch) const {
+    arch.set("color", color);
+    arch.set("ambientStrength", ambientStrength);
+    arch.set("diffuseStrength", diffuseStrength);
+    arch.set("specularStrength", specularStrength);
 
-    j["shadowDistance"] = shadowDistance;
-    j["shadowOrthoSize"] = shadowOrthoSize;
-    j["shadowNear"] = shadowNear;
-    j["shadowFar"] = shadowFar;
+    arch.set("shadowDistance", shadowDistance);
+    arch.set("shadowOrthoSize", shadowOrthoSize);
+    arch.set("shadowNear", shadowNear);
+    arch.set("shadowFar", shadowFar);
 }
 
-void DirectionalLightComponent::deserialize(const nlohmann::json& j) {
-    auto col = j["color"].get<std::vector<float>>();
-    color = glm::vec3(col[0], col[1], col[2]);
-    ambientStrength = j.value("ambientStrength", 0.2f);
-    diffuseStrength = j.value("diffuseStrength", 1.0f);
-    specularStrength = j.value("specularStrength", 0.5f);
+void DirectionalLightComponent::deserialize(const Archive& arch) {
+    if (!arch.get("color", color)) color = glm::vec3(1.0f);
+    if (!arch.get("ambientStrength", ambientStrength)) ambientStrength = 0.2f;
+    if (!arch.get("diffuseStrength", diffuseStrength)) diffuseStrength = 1.0f;
+    if (!arch.get("specularStrength", specularStrength)) specularStrength = 0.5f;
 
-    shadowDistance = j.value("shadowDistance", 30.0f);
-    shadowOrthoSize = j.value("shadowOrthoSize", 40.0f);
-    shadowNear = j.value("shadowNear", 0.1f);
-    shadowFar = j.value("shadowFar", 200.0f);
+    if (!arch.get("shadowDistance", shadowDistance)) shadowDistance = 30.0f;
+    if (!arch.get("shadowOrthoSize", shadowOrthoSize)) shadowOrthoSize = 40.0f;
+    if (!arch.get("shadowNear", shadowNear)) shadowNear = 0.1f;
+    if (!arch.get("shadowFar", shadowFar)) shadowFar = 200.0f;
 }

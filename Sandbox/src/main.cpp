@@ -4,8 +4,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <json.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -13,18 +11,18 @@
 #include <imgui.h>
 #include <ImGuizmo.h>
 
+#include <scene/Scene.h>
 #include <controller/EntityController.h>
 #include <persistance/SceneSerializer.h>
+#include <persistance/Archive.h>
 #include <core/Input.h>
 #include <renderer/Renderer.h>
-
-#include "DemoScene.h"
-#include "DemoScenes.h"
+#include <scripting/ScriptLoader.h>
+#include <scripting/ScriptCompiler.h>
 
 #include "gui/ImGuiLayer.h"
 #include "gui/EditorLayer.h"
 #include "gui/ViewportFramebuffer.h"
-#include <scripts/KinematicMover.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -44,7 +42,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(1000, 800, "Very Real Engine 1", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1000, 800, "Game Engine", nullptr, nullptr);
     if (!window) {
         std::cout << "Failed to create window.\n";
         glfwTerminate();
@@ -72,23 +70,24 @@ int main() {
 
     glViewport(0, 0, 1000, 800);
 
+    /*if (!std::filesystem::exists("scripts.dll"))
+        ScriptCompiler::compile();
+    ScriptCompiler::loadDLL();*/
+
     Input::init(window);
 
     std::string sceneName = "scene";
-    std::ifstream cfgFile("start.json");
-    nlohmann::json cfgJSON;
 
-    if (cfgFile.is_open()) {
-        cfgJSON = nlohmann::json::parse(cfgFile);
-        if (cfgJSON.contains("last_scene")) sceneName = cfgJSON["last_scene"];
+    Archive cfgArch;
+    if (cfgArch.loadFromFile("start.dat")) {
+        cfgArch.get("last_scene", sceneName);
     }
-    cfgFile.close();
 
     Scene scene(sceneName);
     Renderer renderer;
     
     std::filesystem::path defaultScenePath = std::filesystem::current_path() /
-        "assets" / "scenes" / (scene.getSceneName() + ".json");
+        "assets" / "scenes" / (scene.getSceneName() + ".vrea");
 
     std::ifstream sceneCheck(defaultScenePath);
     if (sceneCheck.good()) {
@@ -193,6 +192,8 @@ int main() {
         else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
+
+        //ScriptCompiler::poll(dt, scene);
 
         editorLayer.editorCamera.update(dt);
         scene.onUpdate(dt);

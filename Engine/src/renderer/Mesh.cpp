@@ -1,6 +1,9 @@
-#include "Mesh.h"
+#include <renderer/Mesh.h>
+
+#include <renderer/Vertex.h>
 
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
     : vertices(vertices), indices(indices)
@@ -14,6 +17,9 @@ Mesh::~Mesh()
     if (VBO) glDeleteBuffers(1, &VBO);
     if (VAO) glDeleteVertexArrays(1, &VAO);
 }
+
+const std::vector<Vertex>& Mesh::getVertices() const { return vertices; }
+const std::vector<unsigned int>& Mesh::getIndices() const { return indices; }
 
 void Mesh::setupMesh() {
     glGenVertexArrays(1, &VAO);

@@ -1,9 +1,13 @@
-#include "CameraComponent.h"
+#include <scene/components/CameraComponent.h>
 
-#include <persistance/ComponentFactory.h>
+#include <scene/Scene.h>
 #include <scene/Entity.h>
 #include <scene/components/TransformComponent.h>
 
+#include <persistance/ComponentFactory.h>
+#include <persistance/Archive.h>
+
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 REGISTER(CameraComponent);
@@ -32,16 +36,16 @@ void CameraComponent::onDetach() {
         owner->getScene().setActiveCamera(nullptr);
 }
 
-void CameraComponent::serialize(nlohmann::json& j) const {
-    j["fov"] = fov;
-    j["aspect"] = aspect;
-    j["near"] = nearPlane;
-    j["far"] = farPlane;
+void CameraComponent::serialize(Archive& arch) const {
+    arch.set("fov", fov);
+    arch.set("aspect", aspect);
+    arch.set("near", nearPlane);
+    arch.set("far", farPlane);
 }
 
-void CameraComponent::deserialize(const nlohmann::json& j) {
-    fov = j.value("fov", 70.0f);
-    aspect = j.value("aspect", 1.25f);
-    nearPlane = j.value("near", 0.1f);
-    farPlane = j.value("far", 100.0f);
+void CameraComponent::deserialize(const Archive& arch) {
+    if (!arch.get("fov", fov)) fov = 70.0f;
+    if (!arch.get("aspect", aspect)) aspect = 1.25f;
+    if (!arch.get("near", nearPlane)) nearPlane = 0.1f;
+    if (!arch.get("far", farPlane)) farPlane = 100.0f;
 }

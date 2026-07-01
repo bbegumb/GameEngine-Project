@@ -1,4 +1,4 @@
-#include "Material.h"
+#include <renderer/Material.h>
 
 #include <renderer/ShaderProgram.h>
 #include <renderer/Texture.h>

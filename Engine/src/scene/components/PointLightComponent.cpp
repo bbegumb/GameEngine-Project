@@ -1,29 +1,30 @@
-#include "PointLightComponent.h"
+#include <scene/components/PointLightComponent.h>
 
 #include <persistance/ComponentFactory.h>
+#include <persistance/Archive.h>
+
+#include <glm/glm.hpp>
 
 REGISTER(PointLightComponent);
 
-void PointLightComponent::serialize(nlohmann::json& j) const {
-    const float* col = glm::value_ptr(color);
-    j["color"] = std::vector<float>(col, col + 3);
-    j["ambientStrength"] = ambientStrength;
-    j["diffuseStrength"] = diffuseStrength;
-    j["specularStrength"] = specularStrength;
+void PointLightComponent::serialize(Archive& arch) const {
+    arch.set("color", color);
+    arch.set("ambientStrength", ambientStrength);
+    arch.set("diffuseStrength", diffuseStrength);
+    arch.set("specularStrength", specularStrength);
 
-    j["constant"] = constant;
-    j["linear"] = linear;
-    j["quadratic"] = quadratic;
+    arch.set("constant", constant);
+    arch.set("linear", linear);
+    arch.set("quadratic", quadratic);
 }
 
-void PointLightComponent::deserialize(const nlohmann::json& j) {
-    auto col = j["color"].get<std::vector<float>>();
-    color = glm::vec3(col[0], col[1], col[2]);
-    ambientStrength = j.value("ambientStrength", 0.1f);
-    diffuseStrength = j.value("diffuseStrength", 1.0f);
-    specularStrength = j.value("specularStrength", 0.8f);
+void PointLightComponent::deserialize(const Archive& arch) {
+    if (!arch.get("color", color)) color = glm::vec3(1.0f);
+    if (!arch.get("ambientStrength", ambientStrength)) ambientStrength = 0.1f;
+    if (!arch.get("diffuseStrength", diffuseStrength)) diffuseStrength = 1.0f;
+    if (!arch.get("specularStrength", specularStrength)) specularStrength = 0.8f;
 
-    constant = j.value("constant", 1.0f);
-    linear = j.value("linear", 0.09f);
-    quadratic = j.value("quadratic", 0.032f);
+    if (!arch.get("constant", constant)) constant = 1.0f;
+    if (!arch.get("linear", linear)) linear = 0.09f;
+    if (!arch.get("quadratic", quadratic)) quadratic = 0.032f;
 }

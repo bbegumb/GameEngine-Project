@@ -1,7 +1,6 @@
-#include "Entity.h"
+#include <scene/Entity.h>
 
-#include <glm/gtc/type_ptr.hpp>
-#include <scene/components/TransformComponent.h>
+#include <persistance/Archive.h>
 
 inline std::string cleanTypeName(const std::string& name) {
     const std::string prefix = "class ";
@@ -27,32 +26,30 @@ Entity::Entity(Scene* owningScene, const std::string& entityName,
 	transform.setScale(scale);
 }
 
-void Entity::serialize(nlohmann::json& j) const {
-    j["name"] = name;
+void Entity::serialize(Archive& arch) const {
+    arch.set("name", name);
 
     TransformComponent* parent = transform.getParent();
     if (parent && parent->owner)
-        j["parent"] = parent->owner->getName();
+        arch.set("parent", parent->owner->getName());
     else
-        j["parent"] = nullptr;
+        arch.set("parent", std::string(""));
 
     glm::vec3 worldPos = transform.getWorldPosition();
     glm::quat worldRot = transform.getWorldRotationQuat();
     glm::vec3 worldScl = transform.getWorldScale();
 
-    const float* pos = glm::value_ptr(worldPos);
-    const float* scl = glm::value_ptr(worldScl);
+    Archive transformArch;
+    transformArch.set("position", worldPos);
+    transformArch.set("rotation", worldRot);
+    transformArch.set("scale",    worldScl);
+    arch.set("transform", std::move(transformArch));
 
-    j["transform"]["position"] = std::vector<float>(pos, pos + 3);
-    j["transform"]["rotation"] = { worldRot.x, worldRot.y, worldRot.z, worldRot.w };
-    j["transform"]["scale"] = std::vector<float>(scl, scl + 3);
-
-    j["components"] = nlohmann::json::array();
     for (const auto& comp : components) {
-        nlohmann::json cj;
-        cj["type"] = cleanTypeName(typeid(*comp).name());
+        Archive cj;
+        cj.set("type", cleanTypeName(typeid(*comp).name()));
         comp->serialize(cj);
-        j["components"].push_back(cj);
+        arch.append("components", std::move(cj));
     }
 }
 

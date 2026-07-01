@@ -1,6 +1,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "TransformComponent.h"
+#include <scene/components/TransformComponent.h>
+
+#include <persistance/Archive.h>
 
 #include <cmath>
 
@@ -56,6 +58,9 @@ TransformComponent::~TransformComponent()
     for (auto* child : children)
         child->parent = nullptr;
 }
+
+void TransformComponent::serialize(Archive& arch) const {};
+void TransformComponent::deserialize(const Archive& arch) {};
 
 glm::mat4 TransformComponent::getMatrix() const
 {

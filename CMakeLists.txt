@@ -19,6 +19,7 @@ file(GLOB SCRIPTS_SRC CONFIGURE_DEPENDS Sandbox/src/scripts/*.cpp)
 file(GLOB CORE_SRC CONFIGURE_DEPENDS Engine/src/core/*.cpp)
 file(GLOB PROPERTY_SRC CONFIGURE_DEPENDS Engine/src/property/*.cpp)
 file(GLOB PERSISTANCE_SRC CONFIGURE_DEPENDS Engine/src/persistance/*.cpp)
+file(GLOB SCRIPTING_SRC CONFIGURE_DEPENDS Engine/src/scripting/*.cpp)
 
 set(PHYSX_RELEASE_DLLS 
     ${PHYSX_DIR}/release/PhysX_64.dll 
@@ -27,7 +28,7 @@ set(PHYSX_RELEASE_DLLS
     ${PHYSX_DIR}/release/PhysXCooking_64.dll
 )
 
-set(PHYSX_DEBUG_DLLS 
+set(PHYSX_DEBUG_DLLS
     ${PHYSX_DIR}/debug/PhysX_64.dll 
     ${PHYSX_DIR}/debug/PhysXCommon_64.dll 
     ${PHYSX_DIR}/debug/PhysXFoundation_64.dll 
@@ -54,6 +55,7 @@ add_library(Engine
     ${SCENE_SRC}
     ${SCENE_COMPONENT_SRC}
     ${RENDERER_SRC}
+    ${SCRIPTING_SRC}
     ${IMGUI_SRC}
     
     Engine/src/renderer/glad.c
@@ -65,7 +67,7 @@ add_library(Engine
     Engine/src/controller/TransformController.cpp
     Engine/src/controller/EditorSelectionController.cpp
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h" "Engine/src/gui/HierarchyPanel.cpp" "Engine/src/gui/HierarchyPanel.h")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.cpp" "Engine/src/gui/HierarchyPanel.cpp")
 
 target_include_directories(Engine PUBLIC
     glad/include
@@ -78,6 +80,7 @@ target_include_directories(Engine PUBLIC
     external/stb
     include
     Engine/src
+    Engine/include
 )
 
 target_link_libraries(Engine PUBLIC
@@ -108,12 +111,11 @@ file(COPY Sandbox/icon.png DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Sandbox/src/scripts DESTINATION ${CMAKE_BINARY_DIR})
 
 add_executable(Sandbox
-    ${SCRIPTS_SRC}
     Sandbox/src/main.cpp
-    Sandbox/src/DemoScene.cpp
-    Sandbox/src/DemoScenes.cpp
+    ${SCRIPTS_SRC}
+
     Engine/src/renderer/Colourpickingrenderer.cpp
-    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.h" "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.h" "Engine/src/gui/FileManagerPanel.cpp" "Sandbox/src/scripts/KinematicMover.h" "Engine/src/gui/HierarchyPanel.cpp" "Engine/src/gui/HierarchyPanel.h")
+    Engine/src/gui/EditorCamera.cpp "Engine/src/gui/Gizmohelp.cpp" "Engine/src/gui/FileManagerPanel.cpp" "Engine/src/gui/HierarchyPanel.cpp")
 
 set(PHYSX_DLL_NAMES
     PhysX_64.dll
@@ -137,6 +139,33 @@ foreach(DLL ${PHYSX_DLL_NAMES})
         $<TARGET_FILE_DIR:Sandbox>
     )
 endforeach()
+
+set(CLANG_CL ${CMAKE_SOURCE_DIR}/dependencies/compiler/clang-cl.exe)
+set(LLDLINK ${CMAKE_SOURCE_DIR}/dependencies/compiler/lld-link.exe)
+
+if(EXISTS ${CLANG_CL})
+    message(STATUS "Found clang-cl: ${CLANG_CL}")
+else()
+    message(WARNING "clang-cl not found at: ${CLANG_CL}")
+endif()
+
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CLANG_CL}
+        $<TARGET_FILE_DIR:Sandbox>/compiler/clang-cl.exe
+)
+
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${LLDLINK}
+        $<TARGET_FILE_DIR:Sandbox>/compiler/lld-link.exe
+)
+
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:Engine> # Engine.lib
+        $<TARGET_FILE_DIR:Sandbox>/Engine.lib
+)
 
 target_include_directories(Sandbox PUBLIC
     Engine/src

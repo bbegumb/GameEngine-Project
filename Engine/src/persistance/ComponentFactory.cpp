@@ -1,21 +1,29 @@
-#include "ComponentFactory.h"
+#include <persistance/ComponentFactory.h>
 
-#include <iostream>
+#include <persistance/Archive.h>
+#include <scene/Entity.h>
 
-std::unordered_map<std::string, ComponentFactory::Creator>& ComponentFactory::getRegistry() {
-    static std::unordered_map<std::string, Creator> registry;
-    return registry;
+using Creator = std::function<void(Entity&, const Archive&)>;
+
+void ComponentFactory::registerBuiltIn(const std::string& name, Creator creator) {
+    ComponentFactory::getBuiltInRegistry()[name] = creator;
 }
 
-void ComponentFactory::registerType(const std::string& name, Creator creator) {
-    getRegistry()[name] = creator;
+void ComponentFactory::registerScript(const std::string& name, Creator creator) {
+    ComponentFactory::getScriptRegistry()[name] = creator;
 }
 
-void ComponentFactory::create(const std::string& name, Entity& entity, const nlohmann::json& j) {
-    auto& registry = getRegistry();
-    auto it = registry.find(name);
-    if (it != registry.end())
-        it->second(entity, j);
-    else
-        printf("Unknown component type: %s\n", name.c_str());
+void ComponentFactory::create(const std::string& name, Entity& entity, const Archive& arch) {
+    auto& builtInRegistry = getBuiltInRegistry();
+    auto it = builtInRegistry.find(name);
+    if (it != builtInRegistry.end())
+        it->second(entity, arch);
+    else {
+        auto& scriptRegistry = getScriptRegistry();
+        auto it = scriptRegistry.find(name);
+        if (it != scriptRegistry.end())
+            it->second(entity, arch);
+        else
+            printf("Unknown component type: %s\n", name.c_str());
+    }
 }

@@ -24,7 +24,7 @@ bool FileManagerPanel::isMeshFile(const std::filesystem::path& p) {
 }
 
 bool FileManagerPanel::isSceneFile(const std::filesystem::path& p) {
-    return p.extension().string() == ".scene" || p.extension().string() == ".json";
+    return p.extension().string() == ".scene" || p.extension().string() == ".vrea";
 }
 
 bool FileManagerPanel::isShaderFile(const std::filesystem::path& p) {

@@ -1,14 +1,15 @@
-#include "BehaviourComponent.h"
+#include <scene/components/BehaviourComponent.h>
 
 #include <persistance/ComponentFactory.h>
 #include <property/PropertySerializer.h>
+#include <persistance/Archive.h>
 
 REGISTER(BehaviourComponent);
 
-void BehaviourComponent::serialize(nlohmann::json& j) const {
-    PropertySerializer::serialize(*this, j);
+void BehaviourComponent::serialize(Archive& arch) const {
+    PropertySerializer::serialize(*this, arch);
 }
 
-void BehaviourComponent::deserialize(const nlohmann::json& j) {
-    PropertySerializer::deserialize(*this, j);
+void BehaviourComponent::deserialize(const Archive& arch) {
+    PropertySerializer::deserialize(*this, arch);
 }
